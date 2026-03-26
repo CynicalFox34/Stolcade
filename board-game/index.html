@@ -4171,11 +4171,18 @@ function resignGame() {
 }
 
 function closeModalToSetup() {
+    const wasOnline = gameMode === 'online';
     mpStopAll();
+    if (onlineWs) { try { onlineWs.close(); } catch(e) {} onlineWs = null; }
     mpCode = null; mpMyPlayer = 0; mpSeq = -1; mpOpponentName = ''; gameWinner = null;
     onlineGameId = null; onlineMyPlayer = 0; onlineOpponentName = '';
     gameMode = 'vsBot';
-    initGame();
+    if (wasOnline) {
+        navigateTo('online');
+        onlineSetIdle();
+    } else {
+        initGame();
+    }
 }
 
 function mpStopAll() { if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; } }
