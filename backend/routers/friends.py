@@ -22,10 +22,11 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from typing import Optional
 
 from ..database import get_db
-from ..models import Friendship, GameChallenge, User
+from ..models import Friendship, GameChallenge, Match, User
 from ..auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["friends"])
@@ -85,7 +86,6 @@ def send_friend_request(body: FriendRequest, db: Session = Depends(get_db),
 
 @router.get("/friends")
 def list_friends(db: Session = Depends(get_db), me: User = Depends(get_current_user)):
-    from sqlalchemy import or_, and_
     rows = db.query(Friendship).filter(
         or_(Friendship.requester_id == me.id, Friendship.addressee_id == me.id),
         Friendship.status == "accepted"
@@ -96,14 +96,22 @@ def list_friends(db: Session = Depends(get_db), me: User = Depends(get_current_u
         fid = r.addressee_id if r.requester_id == me.id else r.requester_id
         u = db.query(User).filter(User.id == fid).first()
         if u:
+            rated = db.query(Match).filter(
+                or_(Match.player1_id == u.id, Match.player2_id == u.id),
+                Match.is_bot == False,
+                Match.rated == True,
+            ).all()
+            wins   = sum(1 for m in rated if (m.result_p1 == 'win')  == (m.player1_id == u.id))
+            losses = sum(1 for m in rated if (m.result_p1 == 'loss') == (m.player1_id == u.id))
+            draws  = sum(1 for m in rated if m.result_p1 == 'draw')
             friends.append({
                 "friendship_id": r.id,
                 "id": u.id,
                 "username": u.username,
                 "elo": round(u.elo),
-                "wins": u.wins,
-                "losses": u.losses,
-                "draws": u.draws,
+                "wins": wins,
+                "losses": losses,
+                "draws": draws,
             })
     return friends
 
