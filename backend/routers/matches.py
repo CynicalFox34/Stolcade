@@ -82,7 +82,7 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
     matches = (db.query(Match)
                .filter(or_(Match.player1_id == u.id, Match.player2_id == u.id))
                .order_by(Match.created_at.desc())
-               .limit(10).all())
+               .limit(50).all())
 
     recent = []
     for m in matches:

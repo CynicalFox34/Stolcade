@@ -101,6 +101,9 @@ def list_friends(db: Session = Depends(get_db), me: User = Depends(get_current_u
                 "id": u.id,
                 "username": u.username,
                 "elo": round(u.elo),
+                "wins": u.wins,
+                "losses": u.losses,
+                "draws": u.draws,
             })
     return friends
 

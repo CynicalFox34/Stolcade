@@ -1283,7 +1283,7 @@
         <!-- Friends, Achievements, Openings -->
         <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:flex-start;">
 
-            <div id="friends-card" style="flex:1; min-width:220px; background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:16px; padding:1.4rem; position:relative;">
+            <div id="friends-card" style="flex:2; min-width:320px; background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:16px; padding:1.4rem; position:relative;">
                 <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.9rem;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <div style="font-size:1rem; font-weight:800; color:var(--text-primary); flex:1;">Friends</div>
@@ -1601,6 +1601,41 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ─── PLAYER PROFILE PAGE ─── -->
+    <div id="page-player-profile" class="page hidden fade-in">
+        <div class="page-header" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <button id="pp-back-btn" class="btn btn-ghost" style="padding:0.4rem 0.9rem;font-size:0.88rem;" onclick="navigateTo(window._ppFrom||'dashboard')">← Back</button>
+            <div style="display:flex;align-items:center;gap:1rem;flex:1;flex-wrap:wrap;">
+                <div id="pp-avatar" style="width:60px;height:60px;border-radius:50%;background:var(--bg-tertiary);border:2px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:var(--accent);flex-shrink:0;"></div>
+                <div>
+                    <h2 id="pp-username" style="margin-bottom:0.15rem;"></h2>
+                    <div id="pp-sub" style="color:var(--text-muted);font-size:0.85rem;font-weight:600;"></div>
+                </div>
+                <div id="pp-header-action" style="margin-left:auto;"></div>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card"><div class="label">ELO</div><div class="val" id="pp-elo" style="color:var(--accent);"></div></div>
+            <div class="stat-card"><div class="label">Wins</div><div class="val" id="pp-wins" style="color:#6bb577;"></div></div>
+            <div class="stat-card"><div class="label">Losses</div><div class="val" id="pp-losses" style="color:#c26b6b;"></div></div>
+            <div class="stat-card"><div class="label">Draws</div><div class="val" id="pp-draws"></div></div>
+            <div class="stat-card"><div class="label">Win Rate</div><div class="val" id="pp-winrate"></div></div>
+            <div class="stat-card"><div class="label">Games</div><div class="val" id="pp-total"></div></div>
+        </div>
+
+        <div class="matches-card">
+            <div class="matches-card-header">
+                <span class="title" id="pp-history-title">Game History</span>
+                <div style="display:flex;gap:0.4rem;">
+                    <button class="range-btn active" id="pp-sort-recent" onclick="setPPSort('recent')">Recent</button>
+                    <button class="range-btn" id="pp-sort-oldest" onclick="setPPSort('oldest')">Oldest</button>
+                </div>
+            </div>
+            <div id="pp-matches"><div class="empty-state">No games yet.</div></div>
         </div>
     </div>
 
@@ -4274,7 +4309,7 @@ async function loadLeaderboard() {
             const rowStyle = r.is_me ? ' style="background:rgba(var(--accent-rgb,180,100,40),0.07);"' : '';
             return `<div class="lb-row"${rowStyle}>
                 <div class="lb-rank">${rank}</div>
-                <div class="lb-player" onclick="lookupAndOpenProfile('${r.username.replace(/'/g,"\\'")}');event.stopPropagation();" style="cursor:pointer;"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
+                <div class="lb-player" onclick="viewPlayerProfile('${r.username.replace(/'/g,"\\'")}','leaderboard');event.stopPropagation();" style="cursor:pointer;"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
                 <div class="lb-elo">${r.elo}</div>
                 <div class="lb-wins">${r.wins}</div>
                 <div class="lb-losses">${r.losses}</div>
@@ -4541,18 +4576,21 @@ async function loadFriends() {
         if (!friends || !friends.length) {
             list.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">No friends yet. Add someone!</div>';
         } else {
-            list.innerHTML = friends.map(f => `
-              <div style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;">
-                <div style="width:30px;height:30px;border-radius:50%;background:var(--bg-tertiary);border:1px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:var(--accent);">${f.username[0].toUpperCase()}</div>
-                <div style="flex:1;min-width:0;cursor:pointer;" onclick="lookupAndOpenProfile('${f.username.replace(/'/g,"\\'")}')">
-                  <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.username}</div>
-                  <div style="font-size:0.75rem;color:var(--text-muted);">ELO ${f.elo}</div>
+            list.innerHTML = friends.map(f => {
+              const total = (f.wins||0)+(f.losses||0)+(f.draws||0);
+              const wr = total > 0 ? Math.round((f.wins||0)/total*100) : 0;
+              return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.55rem 0.5rem;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-tertiary)'" onmouseleave="this.style.background=''" onclick="viewPlayerProfile('${f.username.replace(/'/g,"\\'")}','dashboard')">
+                <div style="width:42px;height:42px;border-radius:50%;background:var(--bg-primary);border:2px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--accent);flex-shrink:0;">${f.username[0].toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.92rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.username}</div>
+                  <div style="font-size:0.75rem;color:var(--text-muted);margin-top:1px;">ELO ${f.elo} &nbsp;·&nbsp; ${f.wins||0}W ${f.losses||0}L &nbsp;·&nbsp; ${wr}% WR</div>
                 </div>
-                <button onclick="openChallengeModal(${f.id},'${f.username.replace(/'/g,"\\'")}',${f.elo})"
-                  style="background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:7px;padding:0.22rem 0.55rem;font-size:0.75rem;font-weight:700;color:var(--accent);cursor:pointer;">⚔️</button>
-                <button onclick="friendsRemove(${f.friendship_id})" title="Remove friend"
-                  style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;cursor:pointer;padding:0.2rem;">✕</button>
-              </div>`).join('');
+                <button onclick="event.stopPropagation();openChallengeModal(${f.id},'${f.username.replace(/'/g,"\\'")}',${f.elo})"
+                  style="background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:8px;padding:0.3rem 0.6rem;font-size:0.78rem;font-weight:700;color:var(--accent);cursor:pointer;flex-shrink:0;">⚔️</button>
+                <button onclick="event.stopPropagation();friendsRemove(${f.friendship_id})" title="Remove friend"
+                  style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;cursor:pointer;padding:0.2rem;flex-shrink:0;">✕</button>
+              </div>`;
+            }).join('');
         }
     } catch(e) {
         if (list) list.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">Sign in to see friends.</div>';
@@ -4575,9 +4613,10 @@ async function friendsSearchUser() {
     msg.style.color = 'var(--text-muted)';
     msg.textContent = 'Searching…';
     try {
-        const data = await apiFetch('/users/' + encodeURIComponent(name));
         msg.textContent = '';
-        openUserProfile(data);
+        document.getElementById('friends-add-row').style.display = 'none';
+        document.getElementById('friends-add-msg').textContent = '';
+        await viewPlayerProfile(name, 'dashboard');
     } catch(e) {
         msg.style.color = 'var(--error)';
         msg.textContent = e.message || 'User not found';
@@ -4598,10 +4637,93 @@ async function friendsSendRequest(username) {
 let _profileData = null;
 
 async function lookupAndOpenProfile(username) {
+    await viewPlayerProfile(username, 'dashboard');
+}
+
+async function viewPlayerProfile(username, from) {
+    window._ppFrom = from || 'dashboard';
+    window._ppMatches = [];
+    window._ppSort = 'recent';
     try {
         const data = await apiFetch('/users/' + encodeURIComponent(username));
-        openUserProfile(data);
+        _populatePlayerProfile(data);
+        navigateTo('player-profile');
     } catch(e) { alert(e.message || 'Could not load profile'); }
+}
+
+function _populatePlayerProfile(data) {
+    window._ppMatches = data.recent_matches || [];
+    document.getElementById('pp-avatar').textContent = data.username[0].toUpperCase();
+    document.getElementById('pp-username').textContent = data.username;
+    const total = data.wins + data.losses + data.draws;
+    const wr = total > 0 ? Math.round(data.wins / total * 100) : 0;
+    document.getElementById('pp-sub').textContent = `ELO ${data.elo}  ·  ${total} games  ·  ${wr}% win rate`;
+    document.getElementById('pp-elo').textContent = data.elo;
+    document.getElementById('pp-wins').textContent = data.wins;
+    document.getElementById('pp-losses').textContent = data.losses;
+    document.getElementById('pp-draws').textContent = data.draws;
+    document.getElementById('pp-winrate').textContent = wr + '%';
+    document.getElementById('pp-total').textContent = total;
+    // Action button
+    const actionEl = document.getElementById('pp-header-action');
+    if (data.is_me) {
+        actionEl.innerHTML = '';
+    } else if (data.friendship_status === 'accepted') {
+        actionEl.innerHTML = '<span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">✓ Friends</span>';
+    } else if (data.friendship_status === 'pending') {
+        actionEl.innerHTML = '<span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">Request pending…</span>';
+    } else {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.style.cssText = 'padding:0.5rem 1.1rem;font-size:0.88rem;';
+        btn.textContent = '+ Add Friend';
+        btn.onclick = async () => {
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            const ok = await friendsSendRequest(data.username);
+            if (ok) actionEl.innerHTML = '<span style="font-size:0.85rem;color:#4ade80;font-weight:600;">✓ Request sent!</span>';
+            else { btn.disabled = false; btn.textContent = '+ Add Friend'; }
+        };
+        actionEl.innerHTML = '';
+        actionEl.appendChild(btn);
+    }
+    _renderPPMatches();
+}
+
+function _renderPPMatches() {
+    const container = document.getElementById('pp-matches');
+    if (!container) return;
+    const sorted = (window._ppMatches || []).slice().sort((a, b) =>
+        window._ppSort === 'oldest'
+            ? new Date(a.date) - new Date(b.date)
+            : new Date(b.date) - new Date(a.date)
+    );
+    if (!sorted.length) {
+        container.innerHTML = '<div class="empty-state">No games yet.</div>';
+        return;
+    }
+    container.innerHTML = sorted.map(m => {
+        const color = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
+        const eloStr = m.elo_change > 0 ? `+${m.elo_change}` : `${m.elo_change}`;
+        const eloColor = m.elo_change > 0 ? '#6bb577' : m.elo_change < 0 ? '#c26b6b' : 'var(--text-muted)';
+        const opp = m.is_bot ? 'Bot' : m.opponent;
+        const dateStr = m.date ? new Date(m.date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'2-digit'}) : '';
+        const botTag = m.is_bot ? '<span style="font-size:0.7rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);">BOT</span>' : '';
+        const eloTag = (!m.is_bot && m.elo_change !== 0) ? `<span style="color:${eloColor};font-size:0.78rem;font-weight:700;">${eloStr}</span>` : '';
+        return `<div class="match-row" style="cursor:default;">
+            <span style="color:${color};font-weight:700;text-transform:uppercase;font-size:0.8rem;min-width:48px;">${m.result}</span>
+            <span style="flex:1;color:var(--text-secondary);">vs ${opp} ${botTag}</span>
+            ${eloTag}
+            <span style="color:var(--text-muted);font-size:0.78rem;">${dateStr}</span>
+        </div>`;
+    }).join('');
+}
+
+function setPPSort(order) {
+    window._ppSort = order;
+    document.getElementById('pp-sort-recent').classList.toggle('active', order === 'recent');
+    document.getElementById('pp-sort-oldest').classList.toggle('active', order === 'oldest');
+    _renderPPMatches();
 }
 
 function openUserProfile(data) {
