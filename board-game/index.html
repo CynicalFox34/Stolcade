@@ -1267,7 +1267,7 @@
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
+                align-items: stretch;
                 justify-content: center;
                 gap: 0;
                 overflow: hidden;
@@ -1286,18 +1286,18 @@
             .board-snap-top, .board-snap-bot { display: block; }
 
             /* ── Split/swipe board: shows exactly 10 rows at a time ── */
-            /* Panel 1 height = top 10 rows + extra 2 px gap so snap2 aligns row 10 */
-            /* Panel 2 height = bottom 10 rows exactly                               */
             .board-wrap {
+                /* CRITICAL: display:block so snap panels stack vertically */
+                display: block;
                 position: relative;
-                /* visible window = 10 rows + 9 gaps + top padding+border */
+                width: 100%;
+                /* visible window = 10 rows + 9 gaps + padding+border (6 px) */
                 height: calc(10 * var(--cell) + 9 * 2px + 6px);
                 overflow: hidden;
                 overflow-y: scroll;
                 scroll-snap-type: y mandatory;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                flex-shrink: 0;
             }
             .board-wrap::-webkit-scrollbar { display: none; }
 
@@ -1308,16 +1308,18 @@
                 left: 50%;
                 transform: translateX(-50%);
             }
-            /* Snap panels — invisible, create the two scroll-snap positions */
+            /* Inverted board must keep the translateX centering */
+            #game-board.inverted {
+                transform: translateX(-50%) rotate(180deg);
+            }
+            /* Snap panels — invisible block divs creating the two scroll positions */
             .board-snap-top {
                 height: calc(10 * var(--cell) + 9 * 2px + 6px + 2px);
                 scroll-snap-align: start;
-                flex-shrink: 0;
             }
             .board-snap-bot {
                 height: calc(10 * var(--cell) + 9 * 2px + 6px);
                 scroll-snap-align: start;
-                flex-shrink: 0;
             }
 
             /* Swipe hint dots below board */
