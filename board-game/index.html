@@ -1049,6 +1049,7 @@
         .auth-pw-wrap input { padding-right: 2.6rem; }
         .auth-pw-toggle { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; line-height: 1; font-size: 1rem; }
         .auth-pw-toggle:hover { color: var(--text-primary); }
+        #engine-nav-link { display: none; }
         .auth-submit { width: 100%; margin-top: 1.4rem; padding: 0.75rem; font-size: 1rem; font-weight: 800; }
         .auth-error { font-size: 0.85rem; color: #c26b6b; margin-top: 0.8rem; text-align: center; min-height: 1.2em; }
         .auth-switch { text-align: center; font-size: 0.83rem; color: var(--text-muted); margin-top: 1rem; }
@@ -1181,7 +1182,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span> Club
         </a>
-        <a href="#" data-page="engine" id="engine-nav-link" style="display:none">
+        <a href="#" data-page="engine" id="engine-nav-link">
             <span class="icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/></svg>
             </span> Engine &amp; Data
@@ -5797,7 +5798,7 @@ async function runBalanceLab() {
 // Show Engine & Data nav only on localhost
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     const engineLink = document.getElementById('engine-nav-link');
-    if (engineLink) engineLink.style.display = '';
+    if (engineLink) engineLink.style.setProperty('display', 'flex', 'important');
 }
 
 function togglePw(fieldId, btn) {
