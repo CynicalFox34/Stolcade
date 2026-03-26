@@ -3,7 +3,11 @@ Stolcade game engine — pure Python, no dependencies.
 Faithfully mirrors the JS implementation in index.html.
 """
 
-import numpy as np
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
 from copy import deepcopy
 
 ROWS, COLS, MID_COL = 20, 11, 5
@@ -406,6 +410,11 @@ class GameState:
         return self.game_over
 
     def to_tensor(self):
+        if not _HAS_NUMPY:
+            raise RuntimeError("numpy is required for to_tensor()")
+        return self._to_tensor_impl()
+
+    def _to_tensor_impl(self):
         """
         Canonical (player-relative) encoding — always from current player's POV.
         For P2 the board is flipped vertically so both players see their pieces

@@ -1,27 +1,57 @@
 """
-WebSocket-based online matchmaking and game relay.
+WebSocket-based online matchmaking with server-side move validation.
 
-Flow:
-  1. Client connects to /ws/play?token=<jwt>
-  2. Server validates token, adds player to matchmaking queue
-  3. When two players are queued, they are paired into a game
-  4. Each player's connection relays their moves to the opponent
-  5. On game_over, ELO is updated for both players
+Protocol:
+  Client → Server:  { type: 'move', from_r, from_c, to_r, to_c }
+  Server → Client:  { type: 'state', state: { boardState, currentTurn,
+                        actionsRemaining, bonusPending, moveCount,
+                        gameOver, gameWinner } }
+  Invalid move:     server sends back current state (reverts optimistic update)
+  Game over:        server detects it, calls _update_elo, broadcasts final state
 """
 
+import sys, os, asyncio, json
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'engine'))
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from jose import JWTError, jwt
-import asyncio, json
+from jose import jwt
 
 from ..database import SessionLocal
 from ..models import User, Match
 from ..auth import SECRET_KEY, ALGORITHM
+from game import GameState, get_valid_moves   # noqa: E402
 
 router = APIRouter()
 
-matchmaking_queue: list = []   # [{id, username, elo, ws, game_id}]
-active_games: dict     = {}    # gid -> {p1: {...}, p2: {...}}
-_counter               = 0
+matchmaking_queue: list = []
+active_games: dict      = {}
+_counter                = 0
+
+
+# ── Helpers ────────────────────────────────────────────────────
+
+def _board_to_json(board):
+    return [
+        [
+            {"player": p.player, "isVeylant": p.is_veylant,
+             "hasCrossed": p.has_crossed, "hasEverCrossed": p.has_ever_crossed}
+            if p else None
+            for p in row
+        ]
+        for row in board
+    ]
+
+
+def _gs_to_state(gs: GameState) -> dict:
+    return {
+        "boardState":       _board_to_json(gs.board),
+        "currentTurn":      gs.current_player,
+        "actionsRemaining": gs.actions_left,
+        "bonusPending":     gs.bonus_pending,
+        "moveCount":        gs.move_count,
+        "gameOver":         gs.game_over,
+        "gameWinner":       gs.winner,
+    }
 
 
 async def _get_user(token: str):
@@ -37,7 +67,6 @@ async def _get_user(token: str):
 
 
 async def _update_elo(gid: str, winner: int):
-    """Update ELO for both players and save match record. Pops game to prevent double-update."""
     game = active_games.pop(gid, None)
     if not game:
         return
@@ -49,7 +78,6 @@ async def _update_elo(gid: str, winner: int):
             return
         K    = 32
         exp1 = 1 / (1 + 10 ** ((p2.elo - p1.elo) / 400))
-        exp2 = 1 - exp1
 
         p1_elo_before = round(p1.elo)
         p2_elo_before = round(p2.elo)
@@ -62,9 +90,9 @@ async def _update_elo(gid: str, winner: int):
             s1, s2 = 0.5, 0.5; p1.draws  += 1; p2.draws  += 1; r1, r2 = 'draw', 'draw'
 
         p1.elo = max(100, round(p1.elo + K * (s1 - exp1)))
-        p2.elo = max(100, round(p2.elo + K * (s2 - exp2)))
+        p2.elo = max(100, round(p2.elo + K * (s2 - (1 - exp1))))
 
-        match = Match(
+        db.add(Match(
             player1_id    = p1.id,
             player2_id    = p2.id,
             result_p1     = r1,
@@ -73,43 +101,99 @@ async def _update_elo(gid: str, winner: int):
             elo_p2_before = p2_elo_before,
             elo_p2_after  = round(p2.elo),
             is_bot        = False,
-        )
-        db.add(match)
+        ))
         db.commit()
     finally:
         db.close()
 
 
-async def _relay(gid: str, my_ws: WebSocket, opp_ws: WebSocket):
-    """Relay messages from my_ws to opp_ws until game over or disconnect."""
+# ── Per-player relay with server-side validation ───────────────
+
+async def _relay(gid: str, my_ws: WebSocket, player_num: int):
+    """
+    Handles incoming messages from one player.
+    Validates moves against the server's authoritative GameState,
+    applies them, and broadcasts the new state to both players.
+    """
     try:
         while True:
             raw  = await my_ws.receive_text()
             data = json.loads(raw)
             t    = data.get("type")
 
-            if t == "move":
-                try:
-                    await opp_ws.send_json(data)
-                except Exception:
-                    pass
+            if t != "move":
+                continue   # ignore unknown messages
 
-            elif t == "game_over":
-                try:
-                    await opp_ws.send_json(data)
-                except Exception:
-                    pass
-                await _update_elo(gid, data.get("winner"))
+            game = active_games.get(gid)
+            if not game:
+                break
+
+            gs: GameState = game["gs"]
+
+            # ── 1. Validate turn ──
+            if gs.current_player != player_num:
+                await my_ws.send_json({"type": "state", "state": _gs_to_state(gs)})
+                continue
+
+            # ── 2. Parse coordinates ──
+            try:
+                from_r = int(data["from_r"])
+                from_c = int(data["from_c"])
+                to_r   = int(data["to_r"])
+                to_c   = int(data["to_c"])
+            except (KeyError, ValueError, TypeError):
+                await my_ws.send_json({"type": "state", "state": _gs_to_state(gs)})
+                continue
+
+            # ── 3. Validate piece ownership ──
+            piece = gs.board[from_r][from_c] if (0 <= from_r < 20 and 0 <= from_c < 11) else None
+            if piece is None or piece.player != player_num:
+                await my_ws.send_json({"type": "state", "state": _gs_to_state(gs)})
+                continue
+
+            # ── 4. Find matching legal move ──
+            valid_moves = get_valid_moves(gs.board, from_r, from_c)
+            move_match  = next(
+                (m for m in valid_moves if tuple(m["target"]) == (to_r, to_c)),
+                None
+            )
+            if move_match is None:
+                await my_ws.send_json({"type": "state", "state": _gs_to_state(gs)})
+                continue
+
+            # ── 5. Apply move (immutable — returns new GameState) ──
+            async with game["lock"]:
+                new_gs     = gs.apply(from_r, from_c, move_match)
+                game["gs"] = new_gs
+
+            state_msg = {"type": "state", "state": _gs_to_state(new_gs)}
+
+            # ── 6. Broadcast to both players ──
+            opp_ws = game["p1"]["ws"] if player_num == 2 else game["p2"]["ws"]
+            try:
+                await opp_ws.send_json(state_msg)
+            except Exception:
+                pass
+            await my_ws.send_json(state_msg)
+
+            # ── 7. Game over? ──
+            if new_gs.game_over:
+                await _update_elo(gid, new_gs.winner or 0)
                 return
 
     except WebSocketDisconnect:
-        try:
-            await opp_ws.send_json({"type": "opponent_left"})
-        except Exception:
-            pass
+        game = active_games.get(gid)
+        if game:
+            opp_ws = game["p1"]["ws"] if player_num == 2 else game["p2"]["ws"]
+            try:
+                await opp_ws.send_json({"type": "opponent_left"})
+            except Exception:
+                pass
     finally:
         active_games.pop(gid, None)
 
+
+# ── Matchmaking endpoint ───────────────────────────────────────
 
 @router.websocket("/ws/play")
 async def ws_play(websocket: WebSocket, token: str = Query(...)):
@@ -122,36 +206,39 @@ async def ws_play(websocket: WebSocket, token: str = Query(...)):
         return
 
     global _counter, matchmaking_queue
-
-    # Remove any stale entry for this user (reconnect case)
     matchmaking_queue = [q for q in matchmaking_queue if q["id"] != user["id"]]
 
     if matchmaking_queue:
-        # ── Matched immediately ──────────────────────────────────────────
+        # ── Matched immediately ──────────────────────────────────────
         opp = matchmaking_queue.pop(0)
         _counter += 1
         gid = f"g{_counter}"
 
         active_games[gid] = {
-            "p1": {**opp,  "ws": opp["ws"]},
-            "p2": {**user, "ws": websocket},
+            "p1":   {**opp,  "ws": opp["ws"]},
+            "p2":   {**user, "ws": websocket},
+            "gs":   GameState(),
+            "lock": asyncio.Lock(),
         }
-        opp["game_id"] = gid   # signals opp's queue-wait loop to exit
+        opp["game_id"] = gid
+
+        initial_state = _gs_to_state(active_games[gid]["gs"])
 
         await opp["ws"].send_json({
-            "type": "matched", "game_id": gid,
-            "player": 1, "opponent": user["username"], "opponent_elo": user["elo"],
+            "type": "matched", "game_id": gid, "player": 1,
+            "opponent": user["username"], "opponent_elo": user["elo"],
+            "state": initial_state,
         })
         await websocket.send_json({
-            "type": "matched", "game_id": gid,
-            "player": 2, "opponent": opp["username"], "opponent_elo": opp["elo"],
+            "type": "matched", "game_id": gid, "player": 2,
+            "opponent": opp["username"], "opponent_elo": opp["elo"],
+            "state": initial_state,
         })
 
-        # This handler relays p2 → p1
-        await _relay(gid, websocket, opp["ws"])
+        await _relay(gid, websocket, 2)
 
     else:
-        # ── Added to queue, wait for opponent ────────────────────────────
+        # ── Added to queue, wait for opponent ────────────────────────
         entry = {**user, "ws": websocket, "game_id": None}
         matchmaking_queue.append(entry)
         await websocket.send_json({"type": "queued"})
@@ -166,14 +253,14 @@ async def ws_play(websocket: WebSocket, token: str = Query(...)):
                         await websocket.send_json({"type": "cancelled"})
                         return
                 except asyncio.TimeoutError:
-                    pass   # keep waiting
+                    pass
         except WebSocketDisconnect:
             matchmaking_queue[:] = [q for q in matchmaking_queue if q["id"] != user["id"]]
             return
 
-        # Now matched — relay p1 → p2
         gid  = entry["game_id"]
         game = active_games.get(gid)
         if not game:
             return
-        await _relay(gid, websocket, game["p2"]["ws"])
+
+        await _relay(gid, websocket, 1)

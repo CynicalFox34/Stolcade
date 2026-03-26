@@ -3690,6 +3690,12 @@ function executeMove(fromR, fromC, moveObj) {
     moveCount++;
     saveSnapshot(player);
 
+    // Capture move coordinates for server-side validation (online mode)
+    if (gameMode === 'online') {
+        _onlineLastMove = { from_r: fromR, from_c: fromC,
+                            to_r: moveObj.target[0], to_c: moveObj.target[1] };
+    }
+
     // Win check
     if (countAtGoal(player) >= WIN_COUNT) {
         gameOver = true; gameStarted = false; gameWinner = player;
@@ -4287,11 +4293,12 @@ async function loadLeaderboard() {
 }
 
 // ── Online multiplayer (WebSocket matchmaking) ────────────────
-let onlineWs          = null;
-let onlineMyPlayer    = 0;
-let onlineGameId      = null;
+let onlineWs           = null;
+let onlineMyPlayer     = 0;
+let onlineGameId       = null;
 let onlineOpponentName = '';
 let onlineOpponentElo  = 0;
+let _onlineLastMove    = null;  // { from_r, from_c, to_r, to_c }
 
 function onlineShowSection(id) {
     ['online-idle','online-searching','online-matched'].forEach(s =>
@@ -4320,9 +4327,23 @@ function onlineConnect() {
             document.getElementById('online-opp-name').textContent = data.opponent;
             document.getElementById('online-opp-elo').textContent  = data.opponent_elo;
             onlineShowSection('online-matched');
+            // Store server's initial state to sync after game starts
+            if (data.state) window._onlineInitialState = data.state;
             setTimeout(onlineLaunchGame, 1200);
-        } else if (data.type === 'move') {
+        } else if (data.type === 'state') {
             mpLoadState(data.state);
+            // Refresh ELO display if game just ended
+            if (data.state && data.state.gameOver) {
+                setTimeout(async () => {
+                    try {
+                        const u = await apiAuthFetch('/me');
+                        const el = document.getElementById('online-my-elo');
+                        if (el) el.textContent = Math.round(u.elo);
+                        const te = document.getElementById('topbar-elo');
+                        if (te) te.textContent = Math.round(u.elo);
+                    } catch(e) {}
+                }, 1500);
+            }
         } else if (data.type === 'opponent_left') {
             if (!gameOver) {
                 gameOver = true; gameStarted = false;
@@ -4368,29 +4389,16 @@ function onlineLaunchGame() {
 }
 
 function onlineSendState() {
-    if (!onlineWs || onlineWs.readyState !== WebSocket.OPEN) return;
-    const state = { boardState, currentTurn, actionsRemaining,
-                    bonusPending, moveCount, gameOver, gameWinner,
-                    senderName: loadProfile().username };
-    onlineWs.send(JSON.stringify({ type: 'move', state }));
+    // Send just the move coordinates — server validates and broadcasts authoritative state
+    if (!onlineWs || onlineWs.readyState !== WebSocket.OPEN || !_onlineLastMove) return;
+    onlineWs.send(JSON.stringify({ type: 'move', ..._onlineLastMove }));
+    _onlineLastMove = null;
 }
 
 function onlineSendGameOver() {
-    if (!onlineWs || onlineWs.readyState !== WebSocket.OPEN) return;
-    const winner = gameWinner || (gameOver ? (onlineMyPlayer === 1 ? 2 : 1) : null);
-    onlineWs.send(JSON.stringify({ type: 'game_over', winner,
-        state: { boardState, currentTurn, actionsRemaining, bonusPending,
-                 moveCount, gameOver, gameWinner, senderName: loadProfile().username } }));
-    // Refresh ELO display after short delay (server updates async)
-    setTimeout(async () => {
-        try {
-            const user = await apiAuthFetch('/me');
-            const el = document.getElementById('online-my-elo');
-            if (el) el.textContent = Math.round(user.elo);
-            const topbarElo = document.getElementById('topbar-elo');
-            if (topbarElo) topbarElo.textContent = Math.round(user.elo);
-        } catch(e) {}
-    }, 2000);
+    // Game over is detected server-side when the move is validated.
+    // Just send the final move — server will broadcast the terminal state and update ELO.
+    onlineSendState();
 }
 
 function applyColorPreview() {
