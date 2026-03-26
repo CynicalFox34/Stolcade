@@ -5484,11 +5484,6 @@ function switchAuthTab(tab) {
 let trainAutoscroll   = true;
 let trainPollInterval = null;
 let lastLogLength     = 0;
-let evalHistoryData   = [];
-let evalGamesData     = [];
-let selectedEvalGame  = null;
-const evalGameSteps   = {};
-const evalGamesByUid  = {};
 
 function toggleAutoscroll() {
     trainAutoscroll = !trainAutoscroll;
@@ -5533,9 +5528,6 @@ function updateEvalHistory(log) {
     evalHistoryData = evals;
     renderEvalHistory();
 }
-
-let evalHistoryFilter = '';
-function filterEvalHistory(val) { evalHistoryFilter = val.trim(); renderEvalHistory(); }
 
 function renderEvalHistory() {
     const empty = document.getElementById('eval-empty');
