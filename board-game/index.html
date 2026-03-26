@@ -1170,6 +1170,10 @@
         .bn-item.active { color: var(--accent); }
         .bn-item:hover  { color: var(--text-primary); }
 
+        /* Snap panels & swipe hint — hidden on desktop */
+        .board-snap-top, .board-snap-bot { display: none; }
+        .board-swipe-hint { display: none; }
+
         /* Mobile topbar logo (hidden on desktop) */
         .topbar-mobile-logo {
             display: none;
@@ -1222,17 +1226,17 @@
                 overflow: hidden;
             }
 
-            /* Board cell size on mobile */
-            :root { --cell: 28px; }
+            /* Board cell size on mobile — 32 px fits 11 cols within 390 px screens */
+            :root { --cell: 32px; }
 
-            /* Recalculate center-line gradient for 28 px cells (scale ≈ 0.7368) */
+            /* Recalculate center-line gradient for 32 px cells (scale ≈ 0.8421) */
             #game-board::after, #online-preview-board::after {
                 background: linear-gradient(90deg,
-                    var(--center-line) 0,      var(--center-line) 57.7px,
-                    transparent        57.7px,  transparent        117.7px,
-                    var(--center-line) 117.7px, var(--center-line) 205.0px,
-                    transparent        205.0px, transparent        265.0px,
-                    var(--center-line) 265.0px, var(--center-line) 100%
+                    var(--center-line) 0,      var(--center-line) 65.9px,
+                    transparent        65.9px,  transparent        134.5px,
+                    var(--center-line) 134.5px, var(--center-line) 234.4px,
+                    transparent        234.4px, transparent        303.0px,
+                    var(--center-line) 303.0px, var(--center-line) 100%
                 );
             }
 
@@ -1263,10 +1267,13 @@
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
+                align-items: center;
+                justify-content: center;
                 gap: 0;
                 overflow: hidden;
             }
             .board-topbar {
+                width: 100%;
                 border-radius: 0;
                 padding: 0.4rem 0.9rem;
                 font-size: 0.82rem;
@@ -1274,15 +1281,59 @@
                 border-right: none;
                 border-top: none;
             }
+
+            /* Show snap panels on mobile */
+            .board-snap-top, .board-snap-bot { display: block; }
+
+            /* ── Split/swipe board: shows exactly 10 rows at a time ── */
+            /* Panel 1 height = top 10 rows + extra 2 px gap so snap2 aligns row 10 */
+            /* Panel 2 height = bottom 10 rows exactly                               */
             .board-wrap {
-                flex: 1;
-                min-height: 0;
+                position: relative;
+                /* visible window = 10 rows + 9 gaps + top padding+border */
+                height: calc(10 * var(--cell) + 9 * 2px + 6px);
+                overflow: hidden;
+                overflow-y: scroll;
+                scroll-snap-type: y mandatory;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                flex-shrink: 0;
+            }
+            .board-wrap::-webkit-scrollbar { display: none; }
+
+            /* Board absolutely positioned so snap panels control scroll height */
+            #game-board, #online-preview-board {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            /* Snap panels — invisible, create the two scroll-snap positions */
+            .board-snap-top {
+                height: calc(10 * var(--cell) + 9 * 2px + 6px + 2px);
+                scroll-snap-align: start;
+                flex-shrink: 0;
+            }
+            .board-snap-bot {
+                height: calc(10 * var(--cell) + 9 * 2px + 6px);
+                scroll-snap-align: start;
+                flex-shrink: 0;
+            }
+
+            /* Swipe hint dots below board */
+            .board-swipe-hint {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                overflow: hidden;
-                padding: 4px 0;
+                gap: 5px;
+                padding: 4px 0 2px;
             }
+            .bhi-dot {
+                width: 7px; height: 7px;
+                border-radius: 50%;
+                background: var(--border-inner);
+                transition: background 0.2s;
+            }
+            .bhi-dot.active { background: var(--accent); }
 
             /* ── Compact player cards (horizontal bars) ── */
             #card-you, #card-bot,
@@ -1879,6 +1930,8 @@
                     </div>
                 </div>
                 <div class="board-wrap" style="position:relative;">
+                    <div class="board-snap-top"></div>
+                    <div class="board-snap-bot"></div>
                     <div id="online-preview-board" class="dimmed"></div>
                     <!-- Status overlay shown while searching / matched -->
                     <div class="board-status-overlay hidden" id="online-board-overlay">
@@ -2003,7 +2056,13 @@
                 </div>
 
                 <div class="board-wrap">
+                    <div class="board-snap-top"></div>
+                    <div class="board-snap-bot"></div>
                     <div id="game-board" class="dimmed"></div>
+                </div>
+                <div class="board-swipe-hint" id="play-swipe-hint">
+                    <div class="bhi-dot" id="bhi-opp"></div>
+                    <div class="bhi-dot active" id="bhi-you"></div>
                 </div>
             </div>
 
@@ -2625,6 +2684,37 @@ navLinks.forEach(link => {
         e.preventDefault();
         navigateTo(link.dataset.page);
     });
+});
+
+// ── Mobile board half-scroll ────────────────────────────────
+function scrollBoardToHalf() {
+    if (window.innerWidth > 768) return;
+    // Find visible board-wrap
+    const wrap = document.querySelector('#page-play:not(.hidden) .board-wrap');
+    if (!wrap) return;
+    const board = wrap.querySelector('#game-board');
+    // Inverted board (P1 perspective): P1's pieces are visually at bottom = DOM top = scrollTop 0
+    // Non-inverted (P2 perspective): P2's pieces are in DOM rows 10-19 = scroll to bottom
+    if (board && board.classList.contains('inverted')) {
+        wrap.scrollTop = 0;
+    } else {
+        wrap.scrollTop = wrap.scrollHeight - wrap.clientHeight;
+    }
+}
+
+// Update the two indicator dots as the user swipes
+document.querySelectorAll('.board-wrap').forEach(wrap => {
+    wrap.addEventListener('scroll', () => {
+        const atBottom = wrap.scrollTop >= wrap.scrollHeight - wrap.clientHeight - 4;
+        const board = wrap.querySelector('#game-board, #online-preview-board');
+        const inverted = board && board.classList.contains('inverted');
+        // "your half" is at scroll-top-0 when inverted, scroll-bottom when not
+        const onYourHalf = inverted ? !atBottom : atBottom;
+        const bhi1 = document.getElementById('bhi-opp');
+        const bhi2 = document.getElementById('bhi-you');
+        if (bhi1) bhi1.classList.toggle('active', !onYourHalf);
+        if (bhi2) bhi2.classList.toggle('active',  onYourHalf);
+    }, { passive: true });
 });
 
 // ─── PROFILE ───────────────────────────────────────────────
@@ -3909,6 +3999,7 @@ function startGame() {
     startClock();
     updateStatus();
     if (gameMode === 'vsBot' && currentTurn === botPlayer && !gameOver) { setTimeout(botAction, 1800); }
+    setTimeout(scrollBoardToHalf, 80);
 }
 
 function renderClocks() {
