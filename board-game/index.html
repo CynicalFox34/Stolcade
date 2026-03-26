@@ -1524,9 +1524,272 @@
             /* page-header dark mode toggle — shrink on mobile */
             .page-header { margin-bottom: 1.2rem; }
         }
+
+        /* ═══════════════════════════════════════════════════
+           LANDING PAGE
+           ═══════════════════════════════════════════════════ */
+        .lp {
+            position: fixed; inset: 0; z-index: 800;
+            background: #17191f; color: #e8eaed;
+            overflow-y: auto; overflow-x: hidden;
+            font-family: 'Outfit', sans-serif;
+        }
+        .lp.hidden { display: none !important; }
+
+        .lp-nav {
+            position: sticky; top: 0; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem 2.5rem;
+            background: rgba(23,25,31,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .lp-logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; color: #e8eaed; }
+        .lp-logo span { color: #d4814e; }
+        .lp-nav-btns { display: flex; gap: 0.65rem; align-items: center; }
+
+        .lp-btn {
+            border-radius: 8px; padding: 0.5rem 1.2rem; font-size: 0.9rem;
+            font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: background 0.15s, transform 0.12s, border-color 0.15s;
+            border: none;
+        }
+        .lp-btn-primary { background: #b5622a; color: #fff; }
+        .lp-btn-primary:hover { background: #d4814e; transform: translateY(-1px); }
+        .lp-btn-ghost {
+            background: transparent; color: #c0c8d6;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        .lp-btn-ghost:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.3); }
+        .lp-btn-lg { padding: 0.78rem 1.7rem; font-size: 1rem; }
+
+        /* ── Hero ── */
+        .lp-hero {
+            display: flex; align-items: center; justify-content: center;
+            gap: 5rem; min-height: calc(100vh - 62px);
+            padding: 4rem 3rem; max-width: 1200px; margin: 0 auto;
+        }
+        .lp-hero-text { flex: 1; max-width: 530px; }
+        .lp-eyebrow {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            font-size: 0.76rem; font-weight: 700; letter-spacing: 0.09em;
+            text-transform: uppercase; color: #d4814e;
+            background: rgba(212,129,78,0.10); border: 1px solid rgba(212,129,78,0.22);
+            padding: 0.28rem 0.75rem; border-radius: 100px; margin-bottom: 1.3rem;
+        }
+        .lp-hero-title {
+            font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 900;
+            line-height: 1.07; letter-spacing: -1.5px;
+            color: #f0f2f5; margin-bottom: 1.2rem;
+        }
+        .lp-hero-title span { color: #d4814e; }
+        .lp-hero-sub {
+            font-size: 1.07rem; line-height: 1.65; color: #8a94a6;
+            margin-bottom: 2.1rem; max-width: 460px;
+        }
+        .lp-hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+        /* ── Hero board ── */
+        .lp-board-wrap { flex-shrink: 0; perspective: 900px; }
+        .lp-board {
+            display: grid;
+            grid-template-columns: repeat(11, 20px);
+            grid-template-rows: repeat(14, 20px);
+            gap: 2px; background: #3a4255; border: 3px solid #3a4255;
+            padding: 3px; border-radius: 6px;
+            box-shadow: 0 28px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+            position: relative;
+            transform: rotateY(-8deg) rotateX(4deg);
+            transition: transform 0.5s ease;
+        }
+        .lp-board:hover { transform: rotateY(-3deg) rotateX(2deg); }
+        .lp-board::after {
+            content: ''; position: absolute;
+            left: 3px; right: 3px; top: calc(50% - 3px); height: 6px; z-index: 5;
+            pointer-events: none;
+            background: linear-gradient(90deg,
+                #c04f4f 0,           #c04f4f 42.24px,
+                transparent 42.24px, transparent 87.76px,
+                #c04f4f 87.76px,     #c04f4f 174.24px,
+                transparent 174.24px,transparent 197.76px,
+                #c04f4f 197.76px,    #c04f4f 100%
+            );
+        }
+        .lp-cell {
+            width: 20px; height: 20px; border-radius: 1px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lp-cl { background: #c8b89a; }
+        .lp-cd { background: #9eadbf; }
+        .lp-piece {
+            width: 13px; height: 13px; border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.45);
+        }
+        .lp-p1 { background: radial-gradient(circle at 38% 35%, #e89a60, #9a4a1a); }
+        .lp-p2 { background: radial-gradient(circle at 38% 35%, #c8d4e0, #6a8098); }
+        .lp-pv { width: 15px; height: 15px; box-shadow: 0 0 7px rgba(255,210,90,0.85), 0 2px 4px rgba(0,0,0,0.4); }
+
+        /* ── Feature sections ── */
+        .lp-features { max-width: 1080px; margin: 0 auto; padding: 0 2.5rem; }
+        .lp-feat {
+            display: flex; align-items: center; gap: 5rem;
+            padding: 5rem 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .lp-feat-r { flex-direction: row-reverse; }
+        .lp-feat-vis {
+            flex-shrink: 0; width: 300px; height: 230px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lp-feat-txt { flex: 1; max-width: 460px; }
+        .lp-feat-txt h2 {
+            font-size: 1.95rem; font-weight: 800; color: #f0f2f5;
+            letter-spacing: -0.4px; margin-bottom: 0.85rem;
+        }
+        .lp-feat-txt p {
+            font-size: 1rem; line-height: 1.7; color: #8a94a6; margin-bottom: 1.5rem;
+        }
+
+        /* ── Bottom CTA ── */
+        .lp-cta {
+            background: linear-gradient(135deg, rgba(181,98,42,0.13) 0%, rgba(212,129,78,0.07) 100%);
+            border-top: 1px solid rgba(181,98,42,0.18);
+            padding: 5.5rem 2rem; text-align: center; margin-top: 4rem;
+        }
+        .lp-cta h2 {
+            font-size: 2.5rem; font-weight: 900; color: #f0f2f5;
+            letter-spacing: -1px; margin-bottom: 0.6rem;
+        }
+        .lp-cta p { font-size: 1.05rem; color: #8a94a6; margin-bottom: 2rem; }
+
+        .lp-footer {
+            padding: 1.5rem 2.5rem; text-align: center;
+            font-size: 0.8rem; color: #3a4255; letter-spacing: 0.05em;
+        }
+
+        /* ── Landing mobile ── */
+        @media (max-width: 768px) {
+            .lp-nav { padding: 0.75rem 1.2rem; }
+            .lp-nav-btns .lp-btn-ghost { display: none; }
+            .lp-hero {
+                flex-direction: column-reverse; gap: 2.5rem;
+                min-height: auto; padding: 2rem 1.2rem 3.5rem;
+                text-align: center;
+            }
+            .lp-hero-btns { justify-content: center; }
+            .lp-hero-sub { margin-inline: auto; }
+            .lp-board-wrap { perspective: none; }
+            .lp-board { transform: none !important; }
+            .lp-features { padding: 0 1.2rem; }
+            .lp-feat, .lp-feat-r { flex-direction: column; gap: 2rem; padding: 3rem 0; }
+            .lp-feat-vis { width: 100%; max-width: 360px; height: 160px; }
+            .lp-feat-txt h2 { font-size: 1.5rem; }
+            .lp-cta { padding: 3.5rem 1.2rem; }
+            .lp-cta h2 { font-size: 1.9rem; }
+        }
     </style>
 </head>
 <body>
+
+<!-- ─── LANDING PAGE ────────────────── -->
+<div id="landing-page" class="lp">
+
+    <!-- Nav -->
+    <nav class="lp-nav">
+        <div class="lp-logo">Stol<span>cade</span></div>
+        <div class="lp-nav-btns">
+            <button class="lp-btn lp-btn-ghost" onclick="showLandingAuth('login')">Log In</button>
+            <button class="lp-btn lp-btn-primary" onclick="showLandingAuth('signup')">Sign Up Free</button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="lp-hero">
+        <div class="lp-hero-text">
+            <div class="lp-eyebrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Global Rankings &amp; Online Play
+            </div>
+            <h1 class="lp-hero-title">Play Stolcade<br><span>Online</span></h1>
+            <p class="lp-hero-sub">The strategic board game of pushing, positioning, and tactical crossings. Challenge the AI, play your friends, or compete against the world.</p>
+            <div class="lp-hero-btns">
+                <button class="lp-btn lp-btn-primary lp-btn-lg" onclick="showLandingAuth('signup')">Get Started — It's Free</button>
+                <button class="lp-btn lp-btn-ghost lp-btn-lg" onclick="showLandingAuth('login')">Log In</button>
+            </div>
+        </div>
+        <div class="lp-board-wrap">
+            <div class="lp-board" id="lp-hero-board"></div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <div class="lp-features">
+
+        <!-- Bot -->
+        <div class="lp-feat">
+            <div class="lp-feat-vis">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="rgba(212,129,78,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="8" width="18" height="12" rx="2"/>
+                    <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+                    <circle cx="9" cy="14" r="1.5" fill="rgba(212,129,78,0.7)" stroke="none"/>
+                    <circle cx="15" cy="14" r="1.5" fill="rgba(212,129,78,0.7)" stroke="none"/>
+                    <line x1="9" y1="18" x2="15" y2="18"/>
+                </svg>
+            </div>
+            <div class="lp-feat-txt">
+                <h2>Challenge the AI</h2>
+                <p>Three difficulty levels — from Easy to Hard. The bot uses a neural-network engine trained on thousands of self-play games. Perfect for learning tactics and improving your game.</p>
+                <button class="lp-btn lp-btn-primary" onclick="showLandingAuth('signup')">Play vs Bot</button>
+            </div>
+        </div>
+
+        <!-- Friends -->
+        <div class="lp-feat lp-feat-r">
+            <div class="lp-feat-txt">
+                <h2>Play Your Friends</h2>
+                <p>Add friends, send direct challenges, and choose rated or casual games. Track your head-to-head record and see how you stack up against people you know.</p>
+                <button class="lp-btn lp-btn-primary" onclick="showLandingAuth('signup')">Challenge a Friend</button>
+            </div>
+            <div class="lp-feat-vis">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="rgba(212,129,78,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Rankings -->
+        <div class="lp-feat">
+            <div class="lp-feat-vis">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="rgba(212,129,78,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                    <line x1="2"  y1="20" x2="22" y2="20"/>
+                </svg>
+            </div>
+            <div class="lp-feat-txt">
+                <h2>Climb the Rankings</h2>
+                <p>Every rated game adjusts your ELO rating. Review your match history, track your progress over time, and see where you stand on the global leaderboard.</p>
+                <button class="lp-btn lp-btn-primary" onclick="showLandingAuth('signup')">See Leaderboard</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CTA -->
+    <section class="lp-cta">
+        <h2>Ready to play?</h2>
+        <p>Create your account in seconds. It's completely free.</p>
+        <button class="lp-btn lp-btn-primary lp-btn-lg" onclick="showLandingAuth('signup')">Create Free Account</button>
+    </section>
+
+    <footer class="lp-footer">Stolcade Arena &nbsp;·&nbsp; © 2025</footer>
+</div>
 
 <!-- ─── SIDEBAR ─────────────────────── -->
 <nav class="sidebar">
@@ -2736,6 +2999,53 @@ navLinks.forEach(link => {
         navigateTo(link.dataset.page);
     });
 });
+
+// ── Landing page ─────────────────────────────────────────────
+function showLandingAuth(tab) {
+    document.getElementById('landing-page').classList.add('hidden');
+    if (tab === 'login') switchAuthTab('login');
+    else switchAuthTab('signup');
+    document.getElementById('auth-modal').classList.remove('hidden');
+}
+
+function renderLandingBoard() {
+    const el = document.getElementById('lp-hero-board');
+    if (!el) return;
+    // 11 cols × 14 rows mid-game snapshot
+    // 0=empty 1=orange 2=grey 3=orange Veylant 4=grey Veylant
+    const D = [
+        [0,0,1,0,0,0,0,1,0,0,0],
+        [0,1,0,0,0,1,0,0,0,0,0],
+        [1,0,0,1,0,0,0,0,1,0,0],
+        [0,0,1,0,0,0,1,0,0,1,0],
+        [0,3,0,0,0,0,0,0,1,0,0],
+        [1,0,0,1,0,0,1,0,0,0,1],
+        [0,0,1,0,0,0,0,1,0,0,0],
+        [0,2,0,2,0,0,0,0,2,0,0],
+        [2,0,0,0,0,2,0,2,0,0,2],
+        [0,0,2,0,0,0,2,0,0,2,0],
+        [0,2,0,0,2,0,0,0,0,0,2],
+        [0,0,0,2,0,0,2,0,2,0,0],
+        [0,4,0,0,0,0,0,0,0,2,0],
+        [2,0,0,2,0,0,0,2,0,0,0],
+    ];
+    let h = '';
+    for (let r = 0; r < D.length; r++) {
+        for (let c = 0; c < D[r].length; c++) {
+            const bg = (r + c) % 2 === 0 ? 'lp-cl' : 'lp-cd';
+            const v = D[r][c];
+            let p = '';
+            if (v === 1) p = '<div class="lp-piece lp-p1"></div>';
+            else if (v === 2) p = '<div class="lp-piece lp-p2"></div>';
+            else if (v === 3) p = '<div class="lp-piece lp-p1 lp-pv"></div>';
+            else if (v === 4) p = '<div class="lp-piece lp-p2 lp-pv"></div>';
+            h += `<div class="lp-cell ${bg}">${p}</div>`;
+        }
+    }
+    el.innerHTML = h;
+}
+
+renderLandingBoard();
 
 // ── Mobile history sheet ─────────────────────────────────────
 function toggleMobileHistory() {
@@ -6696,6 +7006,7 @@ async function initAuth() {
                 localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...local, username: user.username, email: user.email }));
             }
             document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('landing-page').classList.add('hidden');
             applyProfile();
             updateOverviewStats();
             loadHomeDashboard();
@@ -6714,12 +7025,13 @@ async function initAuth() {
     const resetToken = new URLSearchParams(window.location.search).get('reset');
     if (resetToken) {
         switchAuthTab('reset');
+        document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('auth-modal').classList.remove('hidden');
         return;
     }
 
-    // Show modal
-    document.getElementById('auth-modal').classList.remove('hidden');
+    // Not logged in — show landing page (already visible by default)
+    // Landing page buttons will open the auth modal when clicked
 }
 
 // ─── INIT ──────────────────────────────────────────────────
