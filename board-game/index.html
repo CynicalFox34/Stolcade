@@ -2224,7 +2224,7 @@ function navigateTo(target) {
             if (target === 'online') {
                 onlineSetIdle();
                 initOnlinePreviewBoard();
-                const sp = JSON.parse(localStorage.getItem(SERVER_PROFILE_KEY) || '{}');
+                const sp = JSON.parse(sessionStorage.getItem(SERVER_PROFILE_KEY) || '{}');
                 const elo = sp.elo ? Math.round(sp.elo) : '—';
                 const name = sp.username || 'You';
                 const el1 = document.getElementById('online-my-elo');
@@ -2364,8 +2364,8 @@ async function saveProfileInfo() {
     try {
         await apiAuthFetch('/me', 'PUT', { username });
         // Update cached server profile
-        const sp = JSON.parse(localStorage.getItem(SERVER_PROFILE_KEY) || '{}');
-        localStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({ ...sp, username }));
+        const sp = JSON.parse(sessionStorage.getItem(SERVER_PROFILE_KEY) || '{}');
+        sessionStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({ ...sp, username }));
     } catch(e) {
         msg.textContent = e.message || 'Save failed.'; msg.style.color = '#c26b6b'; msg.style.opacity = '1';
         setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--accent)'; }, 3000);
@@ -2385,8 +2385,8 @@ async function saveContactInfo() {
     if (email) {
         try {
             await apiAuthFetch('/me', 'PUT', { email });
-            const sp = JSON.parse(localStorage.getItem(SERVER_PROFILE_KEY) || '{}');
-            localStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({ ...sp, email }));
+            const sp = JSON.parse(sessionStorage.getItem(SERVER_PROFILE_KEY) || '{}');
+            sessionStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({ ...sp, email }));
         } catch(e) {
             msg.textContent = e.message || 'Save failed.'; msg.style.color = '#c26b6b'; msg.style.opacity = '1';
             setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--accent)'; }, 3000);
@@ -5427,9 +5427,9 @@ function toggleDarkMode() {
 const AUTH_TOKEN_KEY   = 'stolcade_token';
 const SERVER_PROFILE_KEY = 'stolcade_server_profile';
 
-function getAuthToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
-function setAuthToken(t) { localStorage.setItem(AUTH_TOKEN_KEY, t); }
-function clearAuthToken() { localStorage.removeItem(AUTH_TOKEN_KEY); localStorage.removeItem(SERVER_PROFILE_KEY); }
+function getAuthToken() { return sessionStorage.getItem(AUTH_TOKEN_KEY); }
+function setAuthToken(t) { sessionStorage.setItem(AUTH_TOKEN_KEY, t); }
+function clearAuthToken() { sessionStorage.removeItem(AUTH_TOKEN_KEY); sessionStorage.removeItem(SERVER_PROFILE_KEY); }
 
 async function apiAuthFetch(endpoint, method = 'GET', body = null) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -5916,7 +5916,7 @@ async function initAuth() {
         try {
             const user = await apiAuthFetch('/me');
             // Cache server profile fields
-            localStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({
+            sessionStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({
                 username: user.username, email: user.email, id: user.id,
                 elo: user.elo, wins: user.wins, losses: user.losses, draws: user.draws
             }));
