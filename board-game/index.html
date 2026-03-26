@@ -6228,6 +6228,25 @@ async function initAuth() {
 }
 
 // ─── INIT ──────────────────────────────────────────────────
+
+// One-time migration: fix localStorage match records that were incorrectly
+// saved as bot games when they were actually online games.
+(function migrateMatchHistory() {
+    if (localStorage.getItem('stolcade_match_migration_v1')) return;
+    try {
+        const matches = JSON.parse(localStorage.getItem(MATCHES_KEY) || '[]');
+        let changed = false;
+        matches.forEach(m => {
+            if (m.isBot && m.opponent && m.opponent !== 'Offline Bot' && m.opponent !== 'Bot') {
+                m.isBot = false;
+                changed = true;
+            }
+        });
+        if (changed) localStorage.setItem(MATCHES_KEY, JSON.stringify(matches));
+    } catch(e) {}
+    localStorage.setItem('stolcade_match_migration_v1', '1');
+})();
+
 applyDarkMode(localStorage.getItem('stolcade_dark') === '1');
 updateStreakDisplay();
 setInterval(updateStreakDisplay, 1000);
