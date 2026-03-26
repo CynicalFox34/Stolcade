@@ -50,16 +50,36 @@ def _mp_cleanup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)  # create DB tables on startup
-    # Migration: add 'rated' column if missing (each in its own transaction)
+    # Migration: add 'rated' column if missing
     try:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE matches ADD COLUMN rated BOOLEAN DEFAULT NULL"))
     except Exception:
         pass  # column already exists
-    # Fix bot games that have rated=TRUE from a bad earlier migration default
+    # Fix 1: bot games should never be rated
     try:
         with engine.begin() as conn:
-            conn.execute(text("UPDATE matches SET rated = FALSE WHERE is_bot = TRUE AND (rated IS NULL OR rated = TRUE)"))
+            conn.execute(text("UPDATE matches SET rated = FALSE WHERE is_bot = TRUE"))
+    except Exception:
+        pass
+    # Fix 2: online games where ELO didn't change were unrated
+    # (rated games always change ELO; only unrated games leave it identical)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE matches SET rated = FALSE
+                WHERE is_bot = FALSE
+                AND rated IS NOT FALSE
+                AND elo_p1_before = elo_p1_after
+                AND elo_p2_before IS NOT NULL
+                AND elo_p2_before = elo_p2_after
+            """))
+    except Exception:
+        pass
+    # Fix 3: remaining non-bot games with rated=NULL or TRUE are assumed rated
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE matches SET rated = TRUE WHERE is_bot = FALSE AND rated IS NULL"))
     except Exception:
         pass
     yield
