@@ -1162,11 +1162,6 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
             </span> Play vs Bot
         </a>
-        <a href="#" data-page="local2p">
-            <span class="icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4"/><circle cx="15" cy="11" r="1.5" fill="currentColor" stroke="none"/><circle cx="17" cy="13" r="1.5" fill="currentColor" stroke="none"/></svg>
-            </span> vs Friend
-        </a>
         <a href="#" data-page="openings">
             <span class="icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -1181,11 +1176,6 @@
             <span class="icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span> Club
-        </a>
-        <a href="#" data-page="engine">
-            <span class="icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/></svg>
-            </span> Engine &amp; Data
         </a>
     </div>
 
@@ -1698,53 +1688,6 @@
 
     </div>
 
-    <!-- ─── VS FRIEND (LAN MULTIPLAYER) PAGE ─── -->
-    <div id="page-local2p" class="page hidden fade-in">
-        <div style="display:flex; align-items:center; justify-content:center; height:100%; padding:2rem;">
-            <div style="background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:20px; padding:3rem 3.5rem; max-width:460px; width:100%; box-shadow:var(--shadow-md); text-align:center;">
-
-                <!-- Step 1: Pick host or join -->
-                <div id="mp-lobby-pick">
-                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">🎮</div>
-                    <h2 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin-bottom:0.5rem;">Play vs Friend</h2>
-                    <p style="color:var(--text-secondary); font-size:0.93rem; margin-bottom:2rem; line-height:1.5;">Each player on their own screen, same WiFi.</p>
-                    <div style="display:flex; gap:1rem;">
-                        <button class="btn btn-primary" style="flex:1; padding:0.85rem;" onclick="mpHostGame()">Host Game</button>
-                        <button class="btn" style="flex:1; padding:0.85rem; background:var(--bg-tertiary); border:1px solid var(--border-inner); color:#ffffff;" onclick="mpShowSection('mp-lobby-join')">Join Game</button>
-                    </div>
-                </div>
-
-                <!-- Step 2a: Hosting — show code, wait for opponent -->
-                <div id="mp-lobby-host" class="hidden">
-                    <div style="font-size:2rem; margin-bottom:0.6rem;">📡</div>
-                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Share this code</h2>
-                    <div id="mp-host-code" style="font-size:3.2rem; font-weight:900; letter-spacing:0.25em; color:var(--accent); margin:1.2rem 0; font-variant-numeric:tabular-nums;">—</div>
-                    <p style="color:var(--text-secondary); font-size:0.88rem; line-height:1.6; margin-bottom:1.2rem;">
-                        Have your friend open <strong id="mp-host-url" style="color:var(--text-primary);">this address</strong><br>and click <em>Join Game</em>, then enter this code.
-                    </p>
-                    <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.2rem;">⏳ Waiting for opponent to join…</div>
-                    <button class="btn btn-ghost" style="width:100%;" onclick="mpCancelHost()">Cancel</button>
-                </div>
-
-                <!-- Step 2b: Joining — enter code -->
-                <div id="mp-lobby-join" class="hidden">
-                    <div style="font-size:2rem; margin-bottom:0.6rem;">🔗</div>
-                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Enter Game Code</h2>
-                    <input id="mp-join-input" type="text" maxlength="4" placeholder="XXXX"
-                        style="width:100%; text-align:center; font-size:2.4rem; font-weight:900; letter-spacing:0.3em; padding:0.75rem; border:2px solid var(--border-inner); border-radius:12px; background:var(--bg-tertiary); color:var(--text-primary); -webkit-text-fill-color:var(--text-primary); margin:1.2rem 0; text-transform:uppercase; outline:none;"
-                        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-                        onkeydown="if(event.key==='Enter')mpJoinGame()">
-                    <div id="mp-join-error" style="color:#e05252; font-size:0.88rem; margin-bottom:0.8rem; min-height:1.3em;"></div>
-                    <div style="display:flex; gap:0.75rem;">
-                        <button class="btn btn-ghost" style="flex:1;" onclick="mpShowSection('mp-lobby-pick')">Back</button>
-                        <button class="btn btn-primary" style="flex:1;" onclick="mpJoinGame()">Join</button>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
     <!-- ─── LEADERBOARD PAGE ─── -->
     <div id="page-openings" class="page hidden fade-in">
         <div class="page-content-wrap">
@@ -1792,136 +1735,6 @@
                 <div style="font-size:0.9rem; color:var(--text-muted); max-width:360px; line-height:1.6;">Create or join clubs, compete in club leagues, and play team matches against other clubs.</div>
             </div>
         </div>
-    </div>
-
-    <!-- ── ENGINE & DATA PAGE ── -->
-    <div id="page-engine" class="page hidden">
-        <div class="page-content-wrap">
-        <div class="page-header">
-            <h2>Engine &amp; Data</h2>
-            <p>Training monitor, balance testing, and model diagnostics.</p>
-        </div>
-
-        <!-- Training Monitor -->
-        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
-                <div>
-                    <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Training Monitor</h3>
-                    <p style="color:var(--text-muted); font-size:0.85rem;">Live output from the self-play training loop.</p>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.8rem;">
-                    <span id="train-status-badge" class="status-badge stopped">
-                        <span class="pulse"></span> Stopped
-                    </span>
-                    <button class="btn btn-ghost" id="train-autoscroll-btn" onclick="toggleAutoscroll()" style="font-size:0.82rem; padding:0.35rem 0.8rem;">Auto-scroll: On</button>
-                </div>
-            </div>
-
-            <!-- Live stat cards -->
-            <div class="engine-grid">
-                <div class="engine-card">
-                    <div class="engine-card-title">Iteration</div>
-                    <div class="engine-card-value" id="stat-iter">—</div>
-                </div>
-                <div class="engine-card">
-                    <div class="engine-card-title">Total Games</div>
-                    <div class="engine-card-value" id="stat-games">—</div>
-                </div>
-                <div class="engine-card">
-                    <div class="engine-card-title">Latest Loss</div>
-                    <div class="engine-card-value accent" id="stat-loss">—</div>
-                </div>
-                <div class="engine-card">
-                    <div class="engine-card-title">Phase / Epsilon</div>
-                    <div class="engine-card-value" id="stat-phase" style="font-size:1.1rem; padding-top:0.5rem;">—</div>
-                </div>
-                <!-- New Elo Card -->
-                <div class="engine-card" style="border-left: 4px solid var(--accent);">
-                    <div class="engine-card-title">Current Elo</div>
-                    <div class="engine-card-value accent" id="stat-elo">1000.0</div>
-                </div>
-            </div>
-
-            <div class="log-terminal" id="log-terminal">Waiting for training data…</div>
-        </div>
-
-        <!-- Eval History -->
-        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
-            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Evaluation History</h3>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">Every 10 iterations the current network plays 20 games against the previous best. 55%+ win rate = promoted to new best.</p>
-<div id="eval-empty" style="color:var(--text-muted); font-size:0.9rem;">No evaluations yet — first one runs at iteration 20.</div>
-            <div id="eval-table-wrap" class="hidden" style="max-height:340px; overflow-y:auto; border-radius:8px; border:1px solid var(--border-inner);">
-                <table id="eval-table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-                    <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
-                        <tr style="border-bottom:2px solid var(--border-inner); color:var(--text-muted); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">
-                            <th style="padding:0.5rem 0.8rem; text-align:left;">Iteration</th>
-                            <th style="padding:0.5rem 0.8rem; text-align:left;">vs Best</th>
-                            <th style="padding:0.5rem 0.8rem; text-align:left;">vs Minimax</th>
-                            <th style="padding:0.5rem 0.8rem; text-align:left;">Elo (Rel)</th>
-                            <th style="padding:0.5rem 0.8rem; text-align:left;">Result</th>
-                        </tr>
-                    </thead>
-                    <tbody id="eval-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Eval Games -->
-        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
-            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Eval Games</h3>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">One net-vs-net sample game recorded at each evaluation. Click a row to inspect the move history and board snapshots.</p>
-            <input id="eval-games-search" type="text" placeholder="Search iteration (e.g. 40)…" oninput="filterEvalGames(this.value)"
-                style="width:100%; max-width:280px; background:var(--bg-tertiary); border:1px solid var(--border-inner); border-radius:8px; padding:0.45rem 0.8rem; color:var(--text-primary); font-size:0.88rem; margin-bottom:1rem; outline:none;">
-            <div id="eval-games-empty" style="color:var(--text-muted); font-size:0.9rem;">No eval games recorded yet.</div>
-            <div id="eval-games-list" class="hidden"></div>
-        </div>
-
-        <!-- Game Balance Lab -->
-        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem;">
-            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Game Balance Lab</h3>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.2rem;">Simulates greedy race games to test structural first-mover advantage.</p>
-            <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem;">
-                <div>
-                    <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Games</label>
-                    <select id="lab-games" class="diff-select" style="width:110px">
-                        <option value="10">10 games</option>
-                        <option value="20" selected>20 games</option>
-                        <option value="40">40 games</option>
-                    </select>
-                </div>
-                <div style="padding-top:1.4rem;">
-                    <button class="btn btn-primary" id="lab-run-btn" onclick="runBalanceLab()">Run Test</button>
-                </div>
-            </div>
-            <div id="lab-progress" class="hidden" style="margin-bottom:1rem;">
-                <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px;" id="lab-progress-label">Running…</div>
-                <div style="background:var(--bg-tertiary); border-radius:99px; height:8px; overflow:hidden;">
-                    <div id="lab-progress-bar" style="height:100%; width:0%; background:var(--accent); transition:width 0.3s; border-radius:99px;"></div>
-                </div>
-            </div>
-            <div id="lab-results" class="hidden">
-                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:1.2rem;">
-                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;">
-                        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Gray (P1) Wins</div>
-                        <div id="lab-p1wins" style="font-size:2rem; font-weight:800; color:#718096;">—</div>
-                    </div>
-                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;">
-                        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Yellow (P2) Wins</div>
-                        <div id="lab-p2wins" style="font-size:2rem; font-weight:800; color:var(--board-orange);">—</div>
-                    </div>
-                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;">
-                        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Avg Game Length</div>
-                        <div id="lab-avglength" style="font-size:2rem; font-weight:800; color:var(--text-primary);">—</div>
-                    </div>
-                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;">
-                        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">First Mover Win%</div>
-                        <div id="lab-firstwin" style="font-size:2rem; font-weight:800; color:var(--accent);">—</div>
-                    </div>
-                </div>
-                <div id="lab-verdict" style="font-size:0.9rem; line-height:1.6; color:var(--text-secondary); background:var(--bg-tertiary); border-radius:10px; padding:1rem;"></div>
-            </div>
-        </div>
-        </div><!-- end page-content-wrap -->
     </div>
 
     <!-- ── CHALLENGE TOAST ── -->
@@ -2301,8 +2114,7 @@ const pages    = document.querySelectorAll('.page');
 
 function navigateTo(target) {
     if (target !== 'play') mpStopAll();
-    const navTarget = (target === 'play' && gameMode === 'lan2p') ? 'local2p'
-                    : (target === 'play' && gameMode === 'online') ? 'online'
+    const navTarget = (target === 'play' && gameMode === 'online') ? 'online'
                     : target;
     navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === navTarget));
     const streakChip = document.getElementById('topbar-streak');
@@ -2312,8 +2124,7 @@ function navigateTo(target) {
         p.classList.toggle('hidden', !isTarget);
         if (isTarget) {
             p.classList.remove('fade-in'); void p.offsetWidth; p.classList.add('fade-in');
-            if (target === 'play' && !gameStarted) { if (gameMode !== 'local2p' && gameMode !== 'lan2p' && gameMode !== 'online') gameMode = 'vsBot'; initGame(); }
-            if (target === 'local2p') { mpShowSection('mp-lobby-pick'); document.getElementById('mp-join-input') && (document.getElementById('mp-join-input').value = ''); document.getElementById('mp-join-error') && (document.getElementById('mp-join-error').textContent = ''); }
+            if (target === 'play' && !gameStarted) { if (gameMode !== 'online') gameMode = 'vsBot'; initGame(); }
             if (target === 'profile') loadProfilePage();
             if (target === 'online') {
                 onlineSetIdle();
@@ -2336,15 +2147,6 @@ function navigateTo(target) {
                 onlineLoadFriendsList();
             }
             if (target === 'dashboard') { loadHomeDashboard(); loadFriends(); }
-            if (target === 'engine') {
-                if (!trainPollInterval) {
-                    pollTrainingLog();
-                    trainPollInterval = setInterval(pollTrainingLog, 3000);
-                }
-                pollEvalGames();
-            } else {
-                if (trainPollInterval) { clearInterval(trainPollInterval); trainPollInterval = null; }
-            }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
             if (target === 'streak') loadStreakPage();
             if (target === 'leaderboard') loadLeaderboard();
@@ -2904,7 +2706,7 @@ function replayMatch(ts) {
     updateReviewNav();
 
     // Navigate to play page
-    const _replayNavTarget = gameMode === 'lan2p' ? 'local2p' : gameMode === 'online' ? 'online' : 'play';
+    const _replayNavTarget = gameMode === 'online' ? 'online' : 'play';
     navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === _replayNavTarget));
     pages.forEach(p => {
         p.classList.toggle('hidden', p.id !== 'page-play');
@@ -3193,13 +2995,12 @@ let historyUpdating = false; // suppress mouseleave during DOM rebuild
 
 let humanPlayer = 1;
 let botPlayer = 2;
-let gameMode = 'vsBot'; // 'vsBot' | 'local2p' | 'lan2p'
+let gameMode = 'vsBot'; // 'vsBot' | 'online'
 let mpCode = null, mpMyPlayer = 0, mpSeq = -1, mpOpponentName = '';
-let mpPollTimer = null, mpWaitTimer = null;
+let mpPollTimer = null;
 let gameWinner = null;
 function myPlayer() {
-    if (gameMode === 'lan2p' || gameMode === 'online') return mpMyPlayer;
-    if (gameMode === 'local2p') return currentTurn;
+    if (gameMode === 'online') return mpMyPlayer;
     return humanPlayer;
 }
 let p1Time = 0;
@@ -3516,38 +3317,8 @@ function initGame() {
     // Repopulate SVG for bot profile since textContent overwrites everything if re-used
     document.querySelector('.player-card.bot .p-av').innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="bot-svg" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" /><circle cx="15" cy="14" r="1.5" /><line x1="9" y1="18" x2="15" y2="18"/></svg>`;
     
-    if (gameMode === 'local2p') {
-        humanPlayer = 0; botPlayer = 0;
-        document.getElementById('game-board').classList.remove('inverted');
-        document.querySelector('.player-card.you').classList.add('is-gray');
-        document.querySelector('.player-card.you').classList.remove('is-orange');
-        document.querySelector('.player-card.bot').classList.add('is-orange');
-        document.querySelector('.player-card.bot').classList.remove('is-gray');
-        document.querySelector('.player-card.you .p-av').textContent = 'P1';
-        document.querySelector('.player-card.bot .p-av').textContent = 'P2';
-    } else if (gameMode === 'lan2p') {
-        humanPlayer = mpMyPlayer; botPlayer = 3 - mpMyPlayer;
-        if (humanPlayer === 1) board.classList.add('inverted'); else board.classList.remove('inverted');
-        const youCard2 = document.querySelector('.player-card.you');
-        const oppCard2 = document.querySelector('.player-card.bot');
-        if (humanPlayer === 1) {
-            youCard2.classList.add('is-gray');   youCard2.classList.remove('is-orange');
-            oppCard2.classList.add('is-orange'); oppCard2.classList.remove('is-gray');
-        } else {
-            youCard2.classList.add('is-orange'); youCard2.classList.remove('is-gray');
-            oppCard2.classList.add('is-gray');   oppCard2.classList.remove('is-orange');
-        }
-        document.querySelector('.player-card.you .p-av').textContent = `P${humanPlayer}`;
-        document.querySelector('.player-card.bot .p-av').textContent = `P${botPlayer}`;
-    }
-    document.querySelector('.player-card.you h4').textContent =
-        gameMode === 'local2p' ? 'Player 1' :
-        gameMode === 'lan2p'   ? `Player ${humanPlayer} (You)` :
-                                 `You (Player ${humanPlayer})`;
-    document.querySelector('.player-card.bot h4').textContent =
-        gameMode === 'local2p' ? 'Player 2' :
-        gameMode === 'lan2p'   ? `Player ${botPlayer} (Opponent)` :
-                                 `Offline Bot (Player ${botPlayer})`;
+    document.querySelector('.player-card.you h4').textContent = `You (Player ${humanPlayer})`;
+    document.querySelector('.player-card.bot h4').textContent = `Offline Bot (Player ${botPlayer})`;
     
     const timeSel = document.getElementById('time-select');
     const tc = timeSel ? parseInt(timeSel.value) : 0;
@@ -3621,17 +3392,9 @@ function startGame() {
     document.getElementById('ingame-controls').classList.remove('hidden');
     document.getElementById('history-panel').classList.remove('hidden');
     // Populate static info
-    if (gameMode === 'local2p') {
-        document.getElementById('ingame-color').textContent = 'Pass & Play';
-        document.getElementById('ingame-difficulty').textContent = 'vs Friend';
-    } else if (gameMode === 'lan2p') {
-        document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
-        document.getElementById('ingame-difficulty').textContent = mpOpponentName || 'Opponent';
-    } else {
-        currentDifficulty = document.getElementById('diff-select').value;
-        document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
-        document.getElementById('ingame-difficulty').textContent = currentDifficulty;
-    }
+    currentDifficulty = document.getElementById('diff-select').value;
+    document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
+    document.getElementById('ingame-difficulty').textContent = currentDifficulty;
     const modal = document.getElementById('game-over-modal');
     if (modal) modal.classList.add('hidden');
     startClock();
@@ -3868,7 +3631,6 @@ function executeMove(fromR, fromC, moveObj) {
         renderBoard();
         updateStatus(gameMode !== 'vsBot' ? `🎉 Player ${player} wins!` : (player === humanPlayer ? '🎉 You win!' : '🤖 Bot wins!'));
         showGameOverModal(player, gameMode !== 'vsBot' ? `Player ${player} reached the backline!` : (player === humanPlayer ? "You defeated the Offline Bot." : "The Offline Bot defeated you."));
-        if (gameMode === 'lan2p') { mpSendState(); mpStopAll(); }
         if (gameMode === 'online') onlineSendGameOver();
         return;
     }
@@ -3879,7 +3641,6 @@ function executeMove(fromR, fromC, moveObj) {
         // Same player still has actions left
         renderBoard(); updateStatus();
         if (gameMode === 'vsBot' && currentTurn === botPlayer && !gameOver) { setTimeout(botAction, 450); }
-        if (gameMode === 'lan2p') mpSendState();
         if (gameMode === 'online') onlineSendState();
         return;
     }
@@ -3891,7 +3652,6 @@ function executeMove(fromR, fromC, moveObj) {
 
     renderBoard(); updateStatus();
     if (gameMode === 'vsBot' && currentTurn === botPlayer && !gameOver) { setTimeout(botAction, 500); }
-    if (gameMode === 'lan2p') { mpSendState(); mpStartPoll(); }
     if (gameMode === 'online') onlineSendState();
 }
 
@@ -4289,7 +4049,6 @@ function resignGame() {
     if (gameMode !== 'vsBot') {
         const other = currentTurn === 1 ? 2 : 1;
         gameWinner = other;
-        if (gameMode === 'lan2p') { mpSendState(); mpStopAll(); }
         if (gameMode === 'online') onlineSendGameOver();
         showGameOverModal(other, `Player ${currentTurn} resigned.`);
         updateStatus(`Player ${other} wins by resignation.`);
@@ -4307,104 +4066,7 @@ function closeModalToSetup() {
     initGame();
 }
 
-function startLocalGame() {
-    gameMode = 'local2p';
-    navigateTo('play');
-    startGame();
-}
-
-// ── LAN multiplayer ──────────────────────────────────────────
-function mpShowSection(id) {
-    ['mp-lobby-pick','mp-lobby-host','mp-lobby-join'].forEach(s =>
-        document.getElementById(s).classList.toggle('hidden', s !== id));
-}
-
-async function mpHostGame() {
-    mpShowSection('mp-lobby-host');
-    const res  = await fetch('/api/mp/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: loadProfile().username})});
-    const data = await res.json();
-    mpCode = data.code;
-    mpMyPlayer = 1;
-    document.getElementById('mp-host-code').textContent = mpCode;
-    document.getElementById('mp-host-url').textContent  = window.location.host;
-    mpWaitTimer = setInterval(async () => {
-        try {
-            const r = await fetch('/api/mp/state?code=' + mpCode);
-            const d = await r.json();
-            if (d.status === 'playing') {
-                clearInterval(mpWaitTimer); mpWaitTimer = null;
-                mpOpponentName = d.opponent_name || 'Player 2';
-                mpLaunchGame();
-            }
-        } catch(e) {}
-    }, 1000);
-}
-
-function mpCancelHost() {
-    if (mpWaitTimer) { clearInterval(mpWaitTimer); mpWaitTimer = null; }
-    mpCode = null; mpMyPlayer = 0;
-    mpShowSection('mp-lobby-pick');
-}
-
-async function mpJoinGame() {
-    const code = document.getElementById('mp-join-input').value.trim().toUpperCase();
-    document.getElementById('mp-join-error').textContent = '';
-    if (code.length !== 4) { document.getElementById('mp-join-error').textContent = 'Enter a 4-character code.'; return; }
-    try {
-        const res  = await fetch('/api/mp/join', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code, name: loadProfile().username})});
-        const data = await res.json();
-        if (data.error) { document.getElementById('mp-join-error').textContent = data.error; return; }
-        mpCode = code; mpMyPlayer = 2;
-        mpOpponentName = data.opponent_name || 'Player 1';
-        mpLaunchGame();
-    } catch(e) { document.getElementById('mp-join-error').textContent = 'Could not reach server.'; }
-}
-
-function mpLaunchGame() {
-    gameMode = 'lan2p';
-    navigateTo('play');
-    startGame();
-    // Player 2 waits for player 1's first state — start polling immediately
-    if (mpMyPlayer === 2) mpStartPoll();
-}
-
-function mpStopAll() {
-    if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; }
-    if (mpWaitTimer) { clearInterval(mpWaitTimer); mpWaitTimer = null; }
-}
-
-function mpStartPoll() {
-    if (mpPollTimer) return;
-    mpPollTimer = setInterval(mpPollOnce, 600);
-}
-
-async function mpPollOnce() {
-    if (!mpCode || gameMode !== 'lan2p') { mpStopAll(); return; }
-    try {
-        const res  = await fetch('/api/mp/state?code=' + mpCode);
-        const data = await res.json();
-        if (data.status === 'notfound') { mpStopAll(); return; }
-        if (data.seq !== undefined && data.seq > mpSeq && data.state) {
-            mpSeq = data.seq;
-            mpLoadState(data.state);
-        }
-    } catch(e) {}
-}
-
-async function mpSendState() {
-    if (!mpCode) return;
-    const state = { boardState, currentTurn, actionsRemaining,
-                    bonusPending, moveCount, gameOver, gameWinner,
-                    senderName: loadProfile().username };
-    try {
-        const res = await fetch('/api/mp/move', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({code: mpCode, player: mpMyPlayer, state})
-        });
-        const d = await res.json();
-        if (d.seq !== undefined) mpSeq = d.seq; // don't re-apply our own send
-    } catch(e) {}
-}
+function mpStopAll() { if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; } }
 
 function mpLoadState(st) {
     boardState = st.boardState;
@@ -5250,142 +4912,6 @@ function labSimulateGame(firstPlayer) {
     return { winner: 0, moves: totalMoves };
 }
 
-async function runBalanceLab() {
-    const numGames = parseInt(document.getElementById('lab-games').value);
-    const btn      = document.getElementById('lab-run-btn');
-    const progress = document.getElementById('lab-progress');
-    const results  = document.getElementById('lab-results');
-    const label    = document.getElementById('lab-progress-label');
-    const bar      = document.getElementById('lab-progress-bar');
-
-    btn.disabled = true; btn.textContent = 'Running…';
-    progress.classList.remove('hidden');
-    results.classList.add('hidden');
-    bar.style.width = '0%';
-
-    const stats = { p1: 0, p2: 0, draws: 0, lengths: [], firstMoverWins: 0 };
-
-    for (let g = 0; g < numGames; g++) {
-        // Alternate first player each game
-        const firstPlayer = g % 2 === 0 ? 1 : 2;
-        label.textContent = `Running game ${g + 1} / ${numGames}  (P${firstPlayer} goes first)…`;
-        bar.style.width = `${Math.round((g / numGames) * 100)}%`;
-
-        // Yield to browser so progress updates render
-        await new Promise(r => setTimeout(r, 0));
-
-        const result = labSimulateGame(firstPlayer);
-
-        if (result.winner === 1) stats.p1++;
-        else if (result.winner === 2) stats.p2++;
-        else stats.draws++;
-
-        if (result.winner === firstPlayer) stats.firstMoverWins++;
-        stats.lengths.push(result.moves);
-    }
-
-    bar.style.width = '100%';
-    label.textContent = `Done — ${numGames} games simulated.`;
-
-    const decided = numGames - stats.draws;
-    const avgLen  = Math.round(stats.lengths.reduce((a, b) => a + b, 0) / stats.lengths.length);
-    const fmPct   = decided > 0 ? Math.round((stats.firstMoverWins / decided) * 100) : null;
-    const p1Pct   = Math.round((stats.p1 / numGames) * 100);
-    const p2Pct   = Math.round((stats.p2 / numGames) * 100);
-
-    document.getElementById('lab-p1wins').textContent  = `${stats.p1} (${p1Pct}%)`;
-    document.getElementById('lab-p2wins').textContent  = `${stats.p2} (${p2Pct}%)`;
-    document.getElementById('lab-avglength').textContent = avgLen + ' plies';
-    document.getElementById('lab-firstwin').textContent = fmPct !== null ? fmPct + '%' : 'N/A';
-
-    let verdict = '';
-    if (fmPct === null) {
-        verdict = `<strong>All ${numGames} games ended without a winner.</strong> Both sides were unable to finish — this may indicate a mechanical issue with the game rules or move generation. Try running more games.`;
-    } else if (fmPct >= 70) {
-        verdict = `<strong>Significant first-mover advantage detected (${fmPct}%).</strong> The player who goes first wins the majority of decisive games. Consider giving P2 a compensation rule — such as starting with a bonus action, or a komi-style point handicap.`;
-    } else if (fmPct >= 58) {
-        verdict = `<strong>Mild first-mover advantage (${fmPct}%).</strong> P1 wins slightly more often but it's not decisive. This is within the range seen in many well-balanced games (chess is ~55%). Worth monitoring at higher depth.`;
-    } else {
-        verdict = `<strong>Well-balanced (${fmPct}% first-mover win rate).</strong> Neither player appears to have a structural advantage from going first. Good sign for game health.`;
-    }
-
-    if (stats.draws > 0 && fmPct !== null) verdict += ` <em>${stats.draws} game(s) stagnated and were excluded from the first-mover calculation.</em>`;
-
-    document.getElementById('lab-verdict').innerHTML = verdict;
-    results.classList.remove('hidden');
-    btn.disabled = false; btn.textContent = 'Run Test';
-}
-
-// ─── TRAINING MONITOR ────────────────────────────────────────
-let trainAutoscroll   = true;
-let trainPollInterval = null;
-let lastLogLength     = 0;
-
-function toggleAutoscroll() {
-    trainAutoscroll = !trainAutoscroll;
-    document.getElementById('train-autoscroll-btn').textContent =
-        'Auto-scroll: ' + (trainAutoscroll ? 'On' : 'Off');
-}
-
-function clearLog() {
-    const term = document.getElementById('log-terminal');
-    term.textContent = 'Log cleared.';
-    lastLogLength = 0;
-}
-
-function parseTrainingStats(log) {
-    const lines = log.trim().split('\n');
-    // Find last iter line
-    let lastIter = null;
-    for (let i = lines.length - 1; i >= 0; i--) {
-        const m = lines[i].match(/\[iter\s+(\d+)\].*?games=\s*(\d+).*?(?:\bL=|\bV=)([\d.]+)/);
-        if (m) { lastIter = m; break; }
-    }
-    // Find last phase label
-    let phase = '—';
-    for (let i = lines.length - 1; i >= 0; i--) {
-        const m = lines[i].match(/\[iter.*?\]\s+\[([^\]]+)\]/);
-        if (m) { phase = m[1].trim(); break; }
-    }
-    return lastIter ? {
-        iter:  lastIter[1],
-        games: lastIter[2],
-        loss:  lastIter[3],
-        elo:   lastIter[0].match(/Elo=([\d.]+)/)?.[1] || [...log.matchAll(/Elo=([\d.]+)/g)].pop()?.[1] || '1000.0',
-        phase
-    } : null;
-}
-
-function updateEvalHistory(log) {
-    const lines = log.split('\n');
-    const evals = [];
-    let pendingIter = null;
-
-    for (const line of lines) {
-        // Track current iteration so we can associate it with the next eval
-        const iterM = line.match(/\[iter\s+(\d+)\]/);
-        if (iterM) pendingIter = iterM[1];
-
-        // Eval result line
-        const evalM = line.match(/vs best:\s*([\d.]+)%\s*\(out:(\d+)[^)]*\).*vs minimax:\s*([\d.]+)%\s*\(out:(\d+)[^)]*\)\s*(.*)/);
-        if (evalM) {
-            const eloM = line.match(/Elo:([\d.]+)/);
-            evals.push({
-                iter:    pendingIter || '?',
-                wr:      parseFloat(evalM[1]),
-                outB:    parseInt(evalM[2]),
-                wrGr:    parseFloat(evalM[3]),
-                outGr:   parseInt(evalM[4]),
-                elo:     eloM ? eloM[1] : null,
-                newBest: evalM[5].includes('New best')
-            });
-        }
-    }
-
-    evalHistoryData = evals;
-    renderEvalHistory();
-}
-
 let evalHistoryData = [];
 let evalHistoryFilter = '';
 
@@ -5438,8 +4964,6 @@ function renderEvalHistory() {
 }
 
 // ── Eval Games viewer ─────────────────────────────────────────
-let evalGamesData = [];
-let selectedEvalGame = null;
 const evalGameSteps = {};   // uid -> current step index
 const evalGamesByUid = {};  // uid -> game object
 
@@ -5563,177 +5087,6 @@ function boardStateSVG(cells) {
     svg += `</svg>`;
     return svg;
 }
-
-let evalGamesFilter = '';
-
-function filterEvalGames(val) {
-    evalGamesFilter = val.trim();
-    updateEvalGames(evalGamesData);
-}
-
-function updateEvalGames(games) {
-    evalGamesData = games;
-    const empty = document.getElementById('eval-games-empty');
-    const list  = document.getElementById('eval-games-list');
-    if (!games.length) {
-        empty.classList.remove('hidden');
-        list.classList.add('hidden');
-        return;
-    }
-    empty.classList.add('hidden');
-    list.classList.remove('hidden');
-
-    let reversed = [...games].reverse();
-    if (evalGamesFilter !== '') {
-        reversed = reversed.filter(g => String(g.iter).includes(evalGamesFilter));
-    }
-    if (!reversed.length) {
-        list.innerHTML = `<div style="color:var(--text-muted); font-size:0.9rem;">No games match "${evalGamesFilter}".</div>`;
-        return;
-    }
-    list.innerHTML = reversed.map((g, idx) => {
-        const uid = `${g.iter}_${idx}`;
-        evalGamesByUid[uid] = g;
-        const winnerStr = g.winner === 0 ? 'Tie' : `P${g.winner} wins`;
-        const endStr    = g.end === 'outright' ? '🏆 outright' : g.end === 'tiebreak' ? 'tiebreak' : 'tie';
-        const isSelected = selectedEvalGame === uid;
-        const detailHtml = isSelected ? renderEvalGameDetail(g, uid) : '';
-        return `<div id="eval-game-row-${uid}" style="border:1px solid var(--border-inner); border-radius:10px; margin-bottom:0.6rem; overflow:hidden;">
-            <div onclick="toggleEvalGame('${uid}')" style="display:flex; align-items:center; gap:1rem; padding:0.7rem 1rem; cursor:pointer; background:var(--bg-tertiary); user-select:none;">
-                <span style="font-weight:800; min-width:70px;">Iter ${g.iter}</span>
-                <span style="font-size:0.85rem; color:var(--text-secondary);">${g.moves} moves</span>
-                <span style="font-size:0.85rem; font-weight:700;">${winnerStr}</span>
-                <span style="font-size:0.85rem; color:var(--accent); font-weight:800; min-width:80px;">${g.elo_current ?? '—'} ELO</span>
-                <span style="font-size:0.78rem; color:var(--text-muted);">${endStr}</span>
-            </div>
-            <div id="eval-game-detail-${uid}">${detailHtml}</div>
-        </div>`;
-    }).join('');
-
-    // Render board for selected game
-    if (selectedEvalGame !== null) {
-        const g = evalGamesByUid[selectedEvalGame];
-        if (g) {
-            const step = evalGameSteps[selectedEvalGame] ?? 0;
-            const boardEl = document.getElementById(`eval-board-${selectedEvalGame}`);
-            if (boardEl) renderMiniBoard(g.boards[step], `eval-board-${selectedEvalGame}`, true);
-        }
-    }
-}
-
-function toggleEvalGame(iter) {
-    selectedEvalGame = selectedEvalGame === iter ? null : iter;
-    updateEvalGames(evalGamesData);
-}
-
-async function pollEvalGames() {
-    try {
-        const res = await fetch('/api/eval_games');
-        if (!res.ok) return;
-        const games = await res.json();
-        updateEvalGames(games);
-    } catch (e) {}
-}
-
-function colorizeLog(text) {
-    return text
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/(\[iter\s+\d+\])/g, '<span class="log-iter">$1</span>')
-        .replace(/(→ Evaluating.*)/g, '<span class="log-eval">$1</span>')
-        .replace(/(Phase \d.*)/g, '<span class="log-phase">$1</span>')
-        .replace(/(✓ New best!)/g, '<span class="log-new">$1</span>');
-}
-
-async function startTraining() {
-    const btn = document.getElementById('train-start-btn');
-    btn.disabled = true;
-    btn.textContent = 'Starting…';
-    try {
-        const res  = await fetch('/api/start_training', { method: 'POST' });
-        const data = await res.json();
-        if (data.status === 'already_running') {
-            btn.textContent = 'Already Running';
-        } else {
-            btn.textContent = 'Started!';
-        }
-    } catch (e) {
-        btn.textContent = 'Error';
-    }
-    setTimeout(() => { btn.disabled = false; btn.textContent = 'Start Training'; }, 3000);
-}
-
-async function pollTrainingLog() {
-    try {
-        const res  = await fetch('/api/log');
-        if (!res.ok) return;
-        const data = await res.json();
-
-        // Update status badge
-        const badge = document.getElementById('train-status-badge');
-        if (data.running) {
-            badge.className = 'status-badge running';
-            badge.innerHTML = '<span class="pulse"></span> Training';
-        } else {
-            badge.className = 'status-badge stopped';
-            badge.innerHTML = '<span class="pulse"></span> Stopped';
-        }
-
-        if (!data.log) {
-            const term = document.getElementById('log-terminal');
-            if (term && (term.textContent === 'Waiting for training data…' || term.textContent === '')) {
-                term.textContent = 'No training log yet.\n\nTraining runs locally — start it with:\n  cd engine && python3 pretrain.py\n\nOn the live server, training cannot run (no GPU / persistent disk).';
-            }
-            return;
-        }
-
-        // Only update terminal if log changed
-        if (data.log.length !== lastLogLength) {
-            lastLogLength = data.log.length;
-            const term = document.getElementById('log-terminal');
-            term.innerHTML = colorizeLog(data.log);
-            if (trainAutoscroll) term.scrollTop = term.scrollHeight;
-
-            // Parse stat cards
-            const stats = parseTrainingStats(data.log);
-            if (stats) {
-                document.getElementById('stat-iter').textContent  = stats.iter;
-                document.getElementById('stat-games').textContent = stats.games;
-                document.getElementById('stat-loss').textContent  = stats.loss;
-                document.getElementById('stat-phase').textContent = stats.phase;
-                if (stats.elo) document.getElementById('stat-elo').textContent = stats.elo;
-            }
-
-            // Parse eval history
-            updateEvalHistory(data.log);
-
-            // Fetch eval games
-            pollEvalGames();
-        }
-    } catch (e) {
-        const term = document.getElementById('log-terminal');
-        if (term && term.textContent === 'Waiting for training data…') {
-            term.textContent = 'Could not reach the server.\nIf running locally: python3 -m uvicorn backend.main:app --port 8080';
-        }
-    }
-}
-
-// Start polling when engine page is shown, stop otherwise
-document.querySelectorAll('.nav a').forEach(link => {
-    link.addEventListener('click', () => {
-        const target = link.dataset.page;
-        if (target === 'engine') {
-            if (!trainPollInterval) {
-                pollTrainingLog();
-                trainPollInterval = setInterval(pollTrainingLog, 3000);
-            }
-        } else {
-            if (trainPollInterval) {
-                clearInterval(trainPollInterval);
-                trainPollInterval = null;
-            }
-        }
-    });
-});
 
 // ─── STREAK PAGE ───────────────────────────────────────────
 let streakTickInterval = null;
@@ -6037,13 +5390,18 @@ async function authLogin() {
     if (!username || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
     _authLoginInFlight = true;
     if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+    let _wakeTimer = null;
     try {
+        _wakeTimer = setTimeout(() => {
+            if (btn) btn.textContent = 'Server warming up…';
+        }, 5000);
         const { access_token } = await apiAuthFetch('/login', 'POST', { username, password });
         setAuthToken(access_token);
         await initAuth();
     } catch(e) {
         errEl.textContent = e.message || 'Login failed.';
     } finally {
+        clearTimeout(_wakeTimer);
         _authLoginInFlight = false;
         if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     }
