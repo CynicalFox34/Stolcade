@@ -1181,6 +1181,11 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span> Club
         </a>
+        <a href="#" data-page="engine" id="engine-nav-link" style="display:none">
+            <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/></svg>
+            </span> Engine &amp; Data
+        </a>
     </div>
 
     <div class="sidebar-footer" style="justify-content:center; border:none; background:none; padding:0.5rem;">
@@ -1741,6 +1746,86 @@
         </div>
     </div>
 
+    <!-- ── ENGINE & DATA (localhost only) ── -->
+    <div id="page-engine" class="page hidden">
+        <div class="page-content-wrap">
+        <div class="page-header">
+            <h2>Engine &amp; Data</h2>
+            <p>Training monitor, balance testing, and model diagnostics.</p>
+        </div>
+        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
+                <div>
+                    <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Training Monitor</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Live output from the self-play training loop.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.8rem;">
+                    <span id="train-status-badge" class="status-badge stopped"><span class="pulse"></span> Stopped</span>
+                    <button class="btn btn-ghost" id="train-autoscroll-btn" onclick="toggleAutoscroll()" style="font-size:0.82rem; padding:0.35rem 0.8rem;">Auto-scroll: On</button>
+                </div>
+            </div>
+            <div class="engine-grid">
+                <div class="engine-card"><div class="engine-card-title">Iteration</div><div class="engine-card-value" id="stat-iter">—</div></div>
+                <div class="engine-card"><div class="engine-card-title">Total Games</div><div class="engine-card-value" id="stat-games">—</div></div>
+                <div class="engine-card"><div class="engine-card-title">Latest Loss</div><div class="engine-card-value accent" id="stat-loss">—</div></div>
+                <div class="engine-card"><div class="engine-card-title">Phase / Epsilon</div><div class="engine-card-value" id="stat-phase" style="font-size:1.1rem; padding-top:0.5rem;">—</div></div>
+                <div class="engine-card" style="border-left: 4px solid var(--accent);"><div class="engine-card-title">Current Elo</div><div class="engine-card-value accent" id="stat-elo">1000.0</div></div>
+            </div>
+            <div class="log-terminal" id="log-terminal">Waiting for training data…</div>
+        </div>
+        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
+            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Evaluation History</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">Every 10 iterations the current network plays 20 games against the previous best. 55%+ win rate = promoted to new best.</p>
+            <div id="eval-empty" style="color:var(--text-muted); font-size:0.9rem;">No evaluations yet — first one runs at iteration 20.</div>
+            <div id="eval-table-wrap" class="hidden" style="max-height:340px; overflow-y:auto; border-radius:8px; border:1px solid var(--border-inner);">
+                <table id="eval-table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+                        <tr style="border-bottom:2px solid var(--border-inner); color:var(--text-muted); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">
+                            <th style="padding:0.5rem 0.8rem; text-align:left;">Iteration</th>
+                            <th style="padding:0.5rem 0.8rem; text-align:left;">vs Best</th>
+                            <th style="padding:0.5rem 0.8rem; text-align:left;">vs Minimax</th>
+                            <th style="padding:0.5rem 0.8rem; text-align:left;">Elo (Rel)</th>
+                            <th style="padding:0.5rem 0.8rem; text-align:left;">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eval-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem; margin-bottom:1.4rem;">
+            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Eval Games</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">One net-vs-net sample game recorded at each evaluation. Click a row to inspect the move history and board snapshots.</p>
+            <input id="eval-games-search" type="text" placeholder="Search iteration (e.g. 40)…" oninput="filterEvalGames(this.value)" style="width:100%; max-width:280px; background:var(--bg-tertiary); border:1px solid var(--border-inner); border-radius:8px; padding:0.45rem 0.8rem; color:var(--text-primary); font-size:0.88rem; margin-bottom:1rem; outline:none;">
+            <div id="eval-games-empty" style="color:var(--text-muted); font-size:0.9rem;">No eval games recorded yet.</div>
+            <div id="eval-games-list" class="hidden"></div>
+        </div>
+        <div style="background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-inner); padding:1.8rem;">
+            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Game Balance Lab</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.2rem;">Simulates greedy race games to test structural first-mover advantage.</p>
+            <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem;">
+                <div>
+                    <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Games</label>
+                    <select id="lab-games" class="diff-select" style="width:110px"><option value="10">10 games</option><option value="20" selected>20 games</option><option value="40">40 games</option></select>
+                </div>
+                <div style="padding-top:1.4rem;"><button class="btn btn-primary" id="lab-run-btn" onclick="runBalanceLab()">Run Test</button></div>
+            </div>
+            <div id="lab-progress" class="hidden" style="margin-bottom:1rem;">
+                <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px;" id="lab-progress-label">Running…</div>
+                <div style="background:var(--bg-tertiary); border-radius:99px; height:8px; overflow:hidden;"><div id="lab-progress-bar" style="height:100%; width:0%; background:var(--accent); transition:width 0.3s; border-radius:99px;"></div></div>
+            </div>
+            <div id="lab-results" class="hidden">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:1.2rem;">
+                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;"><div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Gray (P1) Wins</div><div id="lab-p1wins" style="font-size:2rem; font-weight:800; color:#718096;">—</div></div>
+                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;"><div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Yellow (P2) Wins</div><div id="lab-p2wins" style="font-size:2rem; font-weight:800; color:var(--board-orange);">—</div></div>
+                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;"><div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Avg Game Length</div><div id="lab-avglength" style="font-size:2rem; font-weight:800; color:var(--text-primary);">—</div></div>
+                    <div style="background:var(--bg-tertiary); border-radius:10px; padding:1rem; text-align:center;"><div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">First Mover Win%</div><div id="lab-firstwin" style="font-size:2rem; font-weight:800; color:var(--accent);">—</div></div>
+                </div>
+                <div id="lab-verdict" style="font-size:0.9rem; line-height:1.6; color:var(--text-secondary); background:var(--bg-tertiary); border-radius:10px; padding:1rem;"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+
     <!-- ── CHALLENGE TOAST ── -->
     <div id="challenge-toast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:var(--bg-secondary);border:1px solid var(--accent);border-radius:14px;padding:1rem 1.2rem;box-shadow:0 4px 24px rgba(0,0,0,0.4);max-width:310px;animation:slideUp 0.3s ease;">
         <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--accent);margin-bottom:0.35rem;">Challenge Received!</div>
@@ -2155,6 +2240,11 @@ function navigateTo(target) {
                 if (youCard) { youCard.style.opacity = '1'; youCard.className = 'player-card'; }
                 setMatchRated(true);
                 onlineLoadFriendsList();
+            }
+            if (target === 'engine') {
+                if (!trainPollInterval) { pollTrainingLog(); trainPollInterval = setInterval(pollTrainingLog, 3000); }
+            } else {
+                if (trainPollInterval) { clearInterval(trainPollInterval); trainPollInterval = null; }
             }
             if (target === 'dashboard') { loadHomeDashboard(); loadFriends(); }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
@@ -5387,6 +5477,327 @@ function switchAuthTab(tab) {
     if (tab === 'forgot') sub.textContent = 'Reset your password';
     else if (tab === 'reset') sub.textContent = 'Choose a new password';
     else sub.textContent = 'Sign in to save your progress';
+}
+
+// ─── ENGINE & DATA (localhost only) ──────────────────────────
+let trainAutoscroll   = true;
+let trainPollInterval = null;
+let lastLogLength     = 0;
+let evalHistoryData   = [];
+let evalGamesData     = [];
+let selectedEvalGame  = null;
+const evalGameSteps   = {};
+const evalGamesByUid  = {};
+
+function toggleAutoscroll() {
+    trainAutoscroll = !trainAutoscroll;
+    document.getElementById('train-autoscroll-btn').textContent =
+        'Auto-scroll: ' + (trainAutoscroll ? 'On' : 'Off');
+}
+
+function parseTrainingStats(log) {
+    const lines = log.trim().split('\n');
+    let lastIter = null;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        const m = lines[i].match(/\[iter\s+(\d+)\].*?games=\s*(\d+).*?(?:\bL=|\bV=)([\d.]+)/);
+        if (m) { lastIter = m; break; }
+    }
+    let phase = '—';
+    for (let i = lines.length - 1; i >= 0; i--) {
+        const m = lines[i].match(/\[iter.*?\]\s+\[([^\]]+)\]/);
+        if (m) { phase = m[1].trim(); break; }
+    }
+    return lastIter ? {
+        iter:  lastIter[1], games: lastIter[2], loss: lastIter[3],
+        elo:   lastIter[0].match(/Elo=([\d.]+)/)?.[1] || [...log.matchAll(/Elo=([\d.]+)/g)].pop()?.[1] || '1000.0',
+        phase
+    } : null;
+}
+
+function updateEvalHistory(log) {
+    const lines = log.split('\n');
+    const evals = [];
+    let pendingIter = null;
+    for (const line of lines) {
+        const iterM = line.match(/\[iter\s+(\d+)\]/);
+        if (iterM) pendingIter = iterM[1];
+        const evalM = line.match(/vs best:\s*([\d.]+)%\s*\(out:(\d+)[^)]*\).*vs minimax:\s*([\d.]+)%\s*\(out:(\d+)[^)]*\)\s*(.*)/);
+        if (evalM) {
+            const eloM = line.match(/Elo:([\d.]+)/);
+            evals.push({ iter: pendingIter || '?', wr: parseFloat(evalM[1]), outB: parseInt(evalM[2]),
+                         wrGr: parseFloat(evalM[3]), outGr: parseInt(evalM[4]),
+                         elo: eloM ? eloM[1] : null, newBest: evalM[5].includes('New best') });
+        }
+    }
+    evalHistoryData = evals;
+    renderEvalHistory();
+}
+
+let evalHistoryFilter = '';
+function filterEvalHistory(val) { evalHistoryFilter = val.trim(); renderEvalHistory(); }
+
+function renderEvalHistory() {
+    const empty = document.getElementById('eval-empty');
+    const wrap  = document.getElementById('eval-table-wrap');
+    const tbody = document.getElementById('eval-tbody');
+    if (!empty) return;
+    if (!evalHistoryData.length) { empty.classList.remove('hidden'); wrap.classList.add('hidden'); return; }
+    empty.classList.add('hidden'); wrap.classList.remove('hidden');
+    let filtered = [...evalHistoryData].reverse();
+    if (evalHistoryFilter) filtered = filtered.filter(e => String(e.iter).includes(evalHistoryFilter));
+    tbody.innerHTML = filtered.map(e => {
+        const pct = e.wr.toFixed(1)+'%', grPct = e.wrGr != null ? e.wrGr.toFixed(1)+'%' : '—';
+        const color = e.newBest ? '#16a34a' : (e.wr >= 40 ? 'var(--accent)' : 'var(--text-muted)');
+        const grColor = e.wrGr == null ? 'var(--text-muted)' : (e.wrGr >= 55 ? '#16a34a' : e.wrGr >= 35 ? 'var(--accent)' : 'var(--text-muted)');
+        const result = e.newBest ? '<span style="color:#16a34a;font-weight:700;">✓ New best!</span>'
+                     : (e.wr >= 55 ? '<span style="color:var(--accent);font-weight:700;">Promoted</span>'
+                                   : '<span style="color:var(--text-muted);">Not promoted</span>');
+        return `<tr style="border-bottom:1px solid var(--border-inner);">
+            <td style="padding:0.6rem 0.8rem;font-weight:700;">Iter ${e.iter}</td>
+            <td style="padding:0.6rem 0.8rem;font-weight:800;color:${color};">${pct}</td>
+            <td style="padding:0.6rem 0.8rem;font-weight:800;color:${grColor};">${grPct}</td>
+            <td style="padding:0.6rem 0.8rem;">${e.elo ? `<span style="color:var(--accent);font-weight:800;">${e.elo}</span>` : '—'}</td>
+            <td style="padding:0.6rem 0.8rem;">${result}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderEvalGameDetail(game, uid) {
+    const step = evalGameSteps[uid] ?? 0;
+    const totalSteps = game.boards.length - 1;
+    const curMove = game.history[step - 1];
+    const moveInfo = step === 0 ? 'Start position' : curMove
+        ? `Move ${step}: P${curMove.pl} (${curMove.fr},${curMove.fc}) → (${curMove.tr},${curMove.tc})` : `Move ${step}`;
+    return `<div style="padding:1rem;border-top:1px solid var(--border-inner);background:var(--bg-tertiary);border-radius:0 0 10px 10px;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <span style="font-size:0.78rem;background:var(--bg-secondary);padding:3px 10px;border-radius:99px;">Gray (P1) ${game.net_player===1?'— Current Net':'— Prev Best'} | crossed:${game.p1.crossed} | prog:${game.p1.prog}</span>
+            <span style="font-size:0.78rem;background:var(--bg-secondary);padding:3px 10px;border-radius:99px;">Orange (P2) ${game.net_player===2?'— Current Net':'— Prev Best'} | crossed:${game.p2.crossed} | prog:${game.p2.prog}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;flex-wrap:wrap;">
+            <button onclick="stepEvalGame('${uid}',-1);event.stopPropagation();" style="background:var(--bg-secondary);border:1px solid var(--border-inner);border-radius:6px;padding:4px 12px;color:var(--text-primary);cursor:pointer;">◀</button>
+            <button onclick="stepEvalGame('${uid}',1);event.stopPropagation();" style="background:var(--bg-secondary);border:1px solid var(--border-inner);border-radius:6px;padding:4px 12px;color:var(--text-primary);cursor:pointer;">▶</button>
+            <input type="range" min="0" max="${totalSteps}" value="${step}" oninput="jumpEvalGame('${uid}',+this.value);event.stopPropagation();" style="flex:1;min-width:120px;max-width:300px;accent-color:var(--accent);">
+            <span style="font-size:0.82rem;color:var(--text-secondary);min-width:80px;">${step} / ${totalSteps}</span>
+            <span style="font-size:0.82rem;color:var(--text-muted);">${moveInfo}</span>
+        </div>
+        <div id="eval-board-${uid}" style="margin-bottom:1rem;"></div>
+    </div>`;
+}
+
+function stepEvalGame(uid, delta) {
+    const game = evalGamesByUid[uid]; if (!game) return;
+    evalGameSteps[uid] = Math.max(0, Math.min(game.boards.length-1, (evalGameSteps[uid]??0)+delta));
+    refreshEvalGameDetail(uid);
+}
+function jumpEvalGame(uid, step) { evalGameSteps[uid] = +step; refreshEvalGameDetail(uid); }
+function refreshEvalGameDetail(uid) {
+    const game = evalGamesByUid[uid]; if (!game) return;
+    const detailEl = document.getElementById(`eval-game-detail-${uid}`); if (!detailEl) return;
+    detailEl.innerHTML = renderEvalGameDetail(game, uid);
+    renderMiniBoard(game.boards[evalGameSteps[uid]??0], `eval-board-${uid}`);
+}
+function renderMiniBoard(cells, containerId) {
+    const el = document.getElementById(containerId); if (el) el.innerHTML = boardStateSVG(cells);
+}
+
+function boardStateSVG(cells) {
+    const ROWS=20,COLS=11,CS=18,W=COLS*CS,H=ROWS*CS,half=H/2;
+    const GAPS=new Set();[9,10].forEach(r=>[2,3,7,8].forEach(c=>GAPS.add(`${r},${c}`)));
+    const grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+    cells.forEach(c=>{grid[c.r][c.c]=c;});
+    const gl=0.9,bl=1.4;
+    const line=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--mini-board-border)" stroke-width="${gl}" opacity="0.5"/>`;
+    let svg=`<svg viewBox="-1 -1 ${W+2} ${H+2}" width="${W+2}" height="${H+2}" style="display:block;">`;
+    svg+=`<rect x="0" y="0" width="${W}" height="${half}" fill="#a0aec0"/>`;
+    svg+=`<rect x="0" y="${half}" width="${W}" height="${half}" fill="#dd8a50"/>`;
+    svg+=`<rect x="${5*CS}" y="0" width="${CS}" height="${H}" fill="#f8f4ef"/>`;
+    svg+=`<rect x="0" y="0" width="${5*CS}" height="${CS}" fill="#7a8fa8"/>`;
+    svg+=`<rect x="${6*CS}" y="0" width="${5*CS}" height="${CS}" fill="#7a8fa8"/>`;
+    svg+=`<rect x="${5*CS}" y="0" width="${CS}" height="${CS}" fill="#dce5ef"/>`;
+    svg+=`<rect x="0" y="${H-CS}" width="${5*CS}" height="${CS}" fill="#b86424"/>`;
+    svg+=`<rect x="${6*CS}" y="${H-CS}" width="${5*CS}" height="${CS}" fill="#b86424"/>`;
+    svg+=`<rect x="${5*CS}" y="${H-CS}" width="${CS}" height="${CS}" fill="#ede5d8"/>`;
+    for(let c=1;c<COLS;c++)svg+=line(c*CS,0,c*CS,H);
+    for(let r=1;r<ROWS;r++)svg+=line(0,r*CS,W,r*CS);
+    svg+=`<line x1="0" y1="${half}" x2="${W}" y2="${half}" stroke="#c04f4f" stroke-width="2.5" opacity="0.7"/>`;
+    svg+=`<rect x="${2*CS}" y="${9*CS}" width="${2*CS}" height="${2*CS}" fill="var(--bg-tertiary)" stroke="var(--mini-board-border)" stroke-width="${bl}"/>`;
+    svg+=`<rect x="${7*CS}" y="${9*CS}" width="${2*CS}" height="${2*CS}" fill="var(--bg-tertiary)" stroke="var(--mini-board-border)" stroke-width="${bl}"/>`;
+    for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(GAPS.has(`${r},${c}`))continue;const p=grid[r][c];if(!p)continue;
+        const cx=c*CS+CS/2,cy=r*CS+CS/2;
+        if(p.v){const d=CS*0.38,fill=p.pl===1?'#f0f0f0':'#fad84a';svg+=`<polygon points="${cx},${cy-d} ${cx+d},${cy} ${cx},${cy+d} ${cx-d},${cy}" fill="${fill}" stroke="#1a1a1a" stroke-width="1.2"/>`;}
+        else{const fill=p.pl===1?(p.x?'#a0a0b0':'#d8d8d8'):(p.x?'#c8901a':'#e8b820');svg+=`<circle cx="${cx}" cy="${cy}" r="${CS*0.38}" fill="${fill}" stroke="#1a1a1a" stroke-width="1.2"/>`;}}
+    }
+    svg+=`<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="var(--mini-board-border)" stroke-width="${bl}" rx="3"/>`;
+    return svg+'</svg>';
+}
+
+let evalGamesFilter = '';
+function filterEvalGames(val) { evalGamesFilter = val.trim(); updateEvalGames(evalGamesData); }
+
+function updateEvalGames(games) {
+    evalGamesData = games;
+    const empty = document.getElementById('eval-games-empty');
+    const list  = document.getElementById('eval-games-list');
+    if (!empty) return;
+    if (!games.length) { empty.classList.remove('hidden'); list.classList.add('hidden'); return; }
+    empty.classList.add('hidden'); list.classList.remove('hidden');
+    let reversed = [...games].reverse();
+    if (evalGamesFilter) reversed = reversed.filter(g => String(g.iter).includes(evalGamesFilter));
+    if (!reversed.length) { list.innerHTML = `<div style="color:var(--text-muted);font-size:0.9rem;">No games match "${evalGamesFilter}".</div>`; return; }
+    list.innerHTML = reversed.map((g, idx) => {
+        const uid = `${g.iter}_${idx}`;
+        evalGamesByUid[uid] = g;
+        const winnerStr = g.winner===0?'Tie':`P${g.winner} wins`;
+        const endStr = g.end==='outright'?'🏆 outright':g.end==='tiebreak'?'tiebreak':'tie';
+        const isSelected = selectedEvalGame === uid;
+        return `<div id="eval-game-row-${uid}" style="border:1px solid var(--border-inner);border-radius:10px;margin-bottom:0.6rem;overflow:hidden;">
+            <div onclick="toggleEvalGame('${uid}')" style="display:flex;align-items:center;gap:1rem;padding:0.7rem 1rem;cursor:pointer;background:var(--bg-tertiary);user-select:none;">
+                <span style="font-weight:800;min-width:70px;">Iter ${g.iter}</span>
+                <span style="font-size:0.85rem;color:var(--text-secondary);">${g.moves} moves</span>
+                <span style="font-size:0.85rem;font-weight:700;">${winnerStr}</span>
+                <span style="font-size:0.85rem;color:var(--accent);font-weight:800;min-width:80px;">${g.elo_current??'—'} ELO</span>
+                <span style="font-size:0.78rem;color:var(--text-muted);">${endStr}</span>
+            </div>
+            <div id="eval-game-detail-${uid}">${isSelected ? renderEvalGameDetail(g, uid) : ''}</div>
+        </div>`;
+    }).join('');
+    if (selectedEvalGame) {
+        const g = evalGamesByUid[selectedEvalGame];
+        if (g) { const boardEl = document.getElementById(`eval-board-${selectedEvalGame}`); if (boardEl) renderMiniBoard(g.boards[evalGameSteps[selectedEvalGame]??0], `eval-board-${selectedEvalGame}`); }
+    }
+}
+
+function toggleEvalGame(uid) { selectedEvalGame = selectedEvalGame===uid?null:uid; updateEvalGames(evalGamesData); }
+
+async function pollEvalGames() {
+    try { const res=await fetch('/api/eval_games'); if (!res.ok) return; updateEvalGames(await res.json()); } catch(e) {}
+}
+
+function colorizeLog(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/(\[iter\s+\d+\])/g,'<span class="log-iter">$1</span>')
+        .replace(/(→ Evaluating.*)/g,'<span class="log-eval">$1</span>')
+        .replace(/(Phase \d.*)/g,'<span class="log-phase">$1</span>')
+        .replace(/(✓ New best!)/g,'<span class="log-new">$1</span>');
+}
+
+async function startTraining() {
+    const btn = document.getElementById('train-start-btn');
+    btn.disabled = true; btn.textContent = 'Starting…';
+    try {
+        const data = await (await fetch('/api/start_training',{method:'POST'})).json();
+        btn.textContent = data.status==='already_running' ? 'Already Running' : 'Started!';
+    } catch(e) { btn.textContent = 'Error'; }
+    setTimeout(()=>{btn.disabled=false;btn.textContent='Start Training';},3000);
+}
+
+async function pollTrainingLog() {
+    try {
+        const res  = await fetch('/api/log'); if (!res.ok) return;
+        const data = await res.json();
+        const badge = document.getElementById('train-status-badge'); if (!badge) return;
+        if (data.running) { badge.className='status-badge running'; badge.innerHTML='<span class="pulse"></span> Training'; }
+        else              { badge.className='status-badge stopped'; badge.innerHTML='<span class="pulse"></span> Stopped'; }
+        if (!data.log) {
+            const term = document.getElementById('log-terminal');
+            if (term && (term.textContent==='Waiting for training data…'||term.textContent===''))
+                term.textContent = 'No training log yet.\n\nTraining runs locally — start it with:\n  cd engine && python3 pretrain.py\n\nOn the live server, training cannot run (no GPU / persistent disk).';
+            return;
+        }
+        if (data.log.length !== lastLogLength) {
+            lastLogLength = data.log.length;
+            const term = document.getElementById('log-terminal');
+            term.innerHTML = colorizeLog(data.log);
+            if (trainAutoscroll) term.scrollTop = term.scrollHeight;
+            const stats = parseTrainingStats(data.log);
+            if (stats) {
+                document.getElementById('stat-iter').textContent  = stats.iter;
+                document.getElementById('stat-games').textContent = stats.games;
+                document.getElementById('stat-loss').textContent  = stats.loss;
+                document.getElementById('stat-phase').textContent = stats.phase;
+                if (stats.elo) document.getElementById('stat-elo').textContent = stats.elo;
+            }
+            updateEvalHistory(data.log);
+            pollEvalGames();
+        }
+    } catch(e) {
+        const term = document.getElementById('log-terminal');
+        if (term && term.textContent==='Waiting for training data…')
+            term.textContent = 'Could not reach the server.\nIf running locally: python3 -m uvicorn backend.main:app --port 8080';
+    }
+}
+
+function labInitialState() {
+    const state = [];
+    for (let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++){if(c===MID_COL){const pl=r<10?1:2;row.push({player:pl,isVeylant:(pl===1&&r===0)||(pl===2&&r===19),hasCrossed:false,hasEverCrossed:false});}else row.push(null);}state.push(row);}
+    return state;
+}
+
+function labGreedyMove(state, player) {
+    const goal=player===1?P1_GOAL:P2_GOAL;
+    const moves=getAllMoves(state,player);
+    if(!moves.length)return null;
+    let best=null,bestScore=-Infinity;
+    for(const{fromR,fromC,moveObj}of moves){
+        const[tr]=moveObj.target;const dist=Math.abs(tr-goal);
+        let score=(ROWS-1-dist)*10;if(tr===goal)score+=1000;if(didCross(player,fromR,tr))score+=200;
+        const piece=state[fromR][fromC];if(piece&&piece.hasCrossed)score+=30;if(piece&&piece.isVeylant)score+=5;
+        score+=Math.random()*2;if(score>bestScore){bestScore=score;best={fromR,fromC,moveObj};}
+    }
+    return best;
+}
+
+function labSimulateGame(firstPlayer) {
+    let state=labInitialState(),currentPlayer=firstPlayer,actionsLeft=1,bonusPend=[0,0,0],totalMoves=0;
+    const MAX_MOVES=5000;
+    while(totalMoves<MAX_MOVES){
+        if(countOnGoal(state,1)>=WIN_COUNT)return{winner:1,moves:totalMoves};
+        if(countOnGoal(state,2)>=WIN_COUNT)return{winner:2,moves:totalMoves};
+        const best=labGreedyMove(state,currentPlayer);
+        if(!best){const next=currentPlayer===1?2:1;const nb=[...bonusPend];actionsLeft=1+nb[next];nb[next]=0;bonusPend=nb;currentPlayer=next;totalMoves++;continue;}
+        const{newState,bonusEarned}=applyMove(state,best.fromR,best.fromC,best.moveObj,currentPlayer);
+        const nb=[...bonusPend];nb[1]+=bonusEarned[1];nb[2]+=bonusEarned[2];state=newState;totalMoves++;
+        if(actionsLeft>1){actionsLeft--;}else{const next=currentPlayer===1?2:1;actionsLeft=1+nb[next];nb[next]=0;bonusPend=nb;currentPlayer=next;}
+    }
+    return{winner:0,moves:totalMoves};
+}
+
+async function runBalanceLab() {
+    const numGames=parseInt(document.getElementById('lab-games').value);
+    const btn=document.getElementById('lab-run-btn'),progress=document.getElementById('lab-progress'),results=document.getElementById('lab-results');
+    const label=document.getElementById('lab-progress-label'),bar=document.getElementById('lab-progress-bar');
+    btn.disabled=true;btn.textContent='Running…';progress.classList.remove('hidden');results.classList.add('hidden');bar.style.width='0%';
+    const stats={p1:0,p2:0,draws:0,lengths:[],firstMoverWins:0};
+    for(let g=0;g<numGames;g++){
+        const firstPlayer=g%2===0?1:2;
+        label.textContent=`Running game ${g+1} / ${numGames}  (P${firstPlayer} goes first)…`;
+        bar.style.width=`${Math.round((g/numGames)*100)}%`;
+        await new Promise(r=>setTimeout(r,0));
+        const result=labSimulateGame(firstPlayer);
+        if(result.winner===1)stats.p1++;else if(result.winner===2)stats.p2++;else stats.draws++;
+        if(result.winner===firstPlayer)stats.firstMoverWins++;
+        stats.lengths.push(result.moves);
+    }
+    bar.style.width='100%';label.textContent=`Done — ${numGames} games simulated.`;
+    const decided=numGames-stats.draws,avgLen=Math.round(stats.lengths.reduce((a,b)=>a+b,0)/stats.lengths.length);
+    const fmPct=decided>0?Math.round((stats.firstMoverWins/decided)*100):null;
+    document.getElementById('lab-p1wins').textContent=`${stats.p1} (${Math.round(stats.p1/numGames*100)}%)`;
+    document.getElementById('lab-p2wins').textContent=`${stats.p2} (${Math.round(stats.p2/numGames*100)}%)`;
+    document.getElementById('lab-avglength').textContent=avgLen+' plies';
+    document.getElementById('lab-firstwin').textContent=fmPct!==null?fmPct+'%':'N/A';
+    let verdict=fmPct===null?`<strong>All ${numGames} games ended without a winner.</strong>`
+        :fmPct>=70?`<strong>Significant first-mover advantage (${fmPct}%).</strong> Consider giving P2 a compensation rule.`
+        :fmPct>=58?`<strong>Mild first-mover advantage (${fmPct}%).</strong> Within range of well-balanced games.`
+        :`<strong>Well-balanced (${fmPct}% first-mover win rate).</strong> Neither player has a structural advantage.`;
+    if(stats.draws>0&&fmPct!==null)verdict+=` <em>${stats.draws} game(s) excluded from first-mover calc.</em>`;
+    document.getElementById('lab-verdict').innerHTML=verdict;
+    results.classList.remove('hidden');btn.disabled=false;btn.textContent='Run Test';
+}
+
+// Show Engine & Data nav only on localhost
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    const engineLink = document.getElementById('engine-nav-link');
+    if (engineLink) engineLink.style.display = '';
 }
 
 function togglePw(fieldId, btn) {
