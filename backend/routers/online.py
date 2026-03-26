@@ -128,6 +128,18 @@ async def _relay(gid: str, my_ws: WebSocket, player_num: int):
             data = json.loads(raw)
             t    = data.get("type")
 
+            if t == "resign":
+                game = active_games.get(gid)
+                if game:
+                    winner = 2 if player_num == 1 else 1
+                    opp_ws = game["p1"]["ws"] if player_num == 2 else game["p2"]["ws"]
+                    try:
+                        await opp_ws.send_json({"type": "opponent_resigned"})
+                    except Exception:
+                        pass
+                    await _update_elo(gid, winner)
+                return
+
             if t != "move":
                 continue   # ignore unknown messages
 

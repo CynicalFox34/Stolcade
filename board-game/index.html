@@ -1047,7 +1047,7 @@
         .auth-field input:focus { border-color: var(--accent); }
         .auth-pw-wrap { position: relative; }
         .auth-pw-wrap input { padding-right: 2.6rem; }
-        .auth-pw-toggle { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; line-height: 1; font-size: 1rem; }
+        .auth-pw-toggle { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; line-height: 1; display: flex; align-items: center; }
         .auth-pw-toggle:hover { color: var(--text-primary); }
         #engine-nav-link { display: none; }
         .auth-submit { width: 100%; margin-top: 1.4rem; padding: 0.75rem; font-size: 1rem; font-weight: 800; }
@@ -1877,7 +1877,7 @@
                     <label>Password</label>
                     <div class="auth-pw-wrap">
                         <input type="password" id="auth-login-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') authLogin()">
-                        <button type="button" class="auth-pw-toggle" onclick="togglePw('auth-login-password',this)" tabindex="-1" aria-label="Show password">👁</button>
+                        <button type="button" class="auth-pw-toggle" onclick="togglePw('auth-login-password',this)" tabindex="-1" aria-label="Show password"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
                     </div>
                 </div>
                 <button class="btn btn-primary auth-submit" onclick="authLogin()">Sign In</button>
@@ -3421,7 +3421,9 @@ function initGame() {
     document.querySelector('.player-card.bot .p-av').innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="bot-svg" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" /><circle cx="15" cy="14" r="1.5" /><line x1="9" y1="18" x2="15" y2="18"/></svg>`;
     
     document.querySelector('.player-card.you h4').textContent = `You (Player ${humanPlayer})`;
-    document.querySelector('.player-card.bot h4').textContent = `Offline Bot (Player ${botPlayer})`;
+    document.querySelector('.player-card.bot h4').textContent = gameMode === 'online'
+        ? `${mpOpponentName} (Player ${botPlayer})`
+        : `Offline Bot (Player ${botPlayer})`;
     
     const timeSel = document.getElementById('time-select');
     const tc = timeSel ? parseInt(timeSel.value) : 0;
@@ -3497,7 +3499,7 @@ function startGame() {
     // Populate static info
     currentDifficulty = document.getElementById('diff-select').value;
     document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
-    document.getElementById('ingame-difficulty').textContent = currentDifficulty;
+    document.getElementById('ingame-difficulty').textContent = gameMode === 'online' ? mpOpponentName : currentDifficulty;
     const modal = document.getElementById('game-over-modal');
     if (modal) modal.classList.add('hidden');
     startClock();
@@ -4149,10 +4151,17 @@ function updateScore() {
 function resignGame() {
     if (!gameStarted || gameOver) return;
     gameOver = true; gameStarted = false;
-    if (gameMode !== 'vsBot') {
+    if (gameMode === 'online') {
+        const winner = onlineMyPlayer === 1 ? 2 : 1;
+        gameWinner = winner;
+        if (onlineWs && onlineWs.readyState === WebSocket.OPEN) {
+            onlineWs.send(JSON.stringify({ type: 'resign' }));
+        }
+        showGameOverModal(winner, 'You resigned.');
+        updateStatus(`Player ${winner} wins by resignation.`);
+    } else if (gameMode !== 'vsBot') {
         const other = currentTurn === 1 ? 2 : 1;
         gameWinner = other;
-        if (gameMode === 'online') onlineSendGameOver();
         showGameOverModal(other, `Player ${currentTurn} resigned.`);
         updateStatus(`Player ${other} wins by resignation.`);
     } else {
@@ -4378,6 +4387,12 @@ function _onlineAttachHandlers(ws) {
                         if (te)   te.textContent   = Math.round(u.elo);
                     } catch(e) {}
                 }, 1500);
+            }
+        } else if (data.type === 'opponent_resigned') {
+            if (!gameOver) {
+                gameOver = true; gameStarted = false;
+                updateStatus(`🎉 Player ${onlineMyPlayer} wins by resignation!`);
+                showGameOverModal(onlineMyPlayer, 'Your opponent resigned.');
             }
         } else if (data.type === 'opponent_left') {
             if (!gameOver) {
@@ -5792,7 +5807,10 @@ function togglePw(fieldId, btn) {
     const inp = document.getElementById(fieldId);
     if (!inp) return;
     inp.type = inp.type === 'password' ? 'text' : 'password';
-    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+    const showing = inp.type === 'text';
+    btn.innerHTML = showing
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
 let _authLoginInFlight = false;
