@@ -2336,6 +2336,15 @@ function navigateTo(target) {
                 onlineLoadFriendsList();
             }
             if (target === 'dashboard') { loadHomeDashboard(); loadFriends(); }
+            if (target === 'engine') {
+                if (!trainPollInterval) {
+                    pollTrainingLog();
+                    trainPollInterval = setInterval(pollTrainingLog, 3000);
+                }
+                pollEvalGames();
+            } else {
+                if (trainPollInterval) { clearInterval(trainPollInterval); trainPollInterval = null; }
+            }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
             if (target === 'streak') loadStreakPage();
             if (target === 'leaderboard') loadLeaderboard();
@@ -5669,7 +5678,13 @@ async function pollTrainingLog() {
             badge.innerHTML = '<span class="pulse"></span> Stopped';
         }
 
-        if (!data.log) return;
+        if (!data.log) {
+            const term = document.getElementById('log-terminal');
+            if (term && (term.textContent === 'Waiting for training data…' || term.textContent === '')) {
+                term.textContent = 'No training log yet.\n\nTraining runs locally — start it with:\n  cd engine && python3 pretrain.py\n\nOn the live server, training cannot run (no GPU / persistent disk).';
+            }
+            return;
+        }
 
         // Only update terminal if log changed
         if (data.log.length !== lastLogLength) {
@@ -5695,10 +5710,9 @@ async function pollTrainingLog() {
             pollEvalGames();
         }
     } catch (e) {
-        // Server not running — show hint once
         const term = document.getElementById('log-terminal');
-        if (term.textContent === 'Waiting for training data…') {
-            term.textContent = 'Server not detected.\nRun:  python3 server.py\nThen open http://localhost:8080';
+        if (term && term.textContent === 'Waiting for training data…') {
+            term.textContent = 'Could not reach the server.\nIf running locally: python3 -m uvicorn backend.main:app --port 8080';
         }
     }
 }
