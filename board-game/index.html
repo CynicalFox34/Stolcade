@@ -1045,6 +1045,10 @@
             transition: border-color 0.15s; outline: none;
         }
         .auth-field input:focus { border-color: var(--accent); }
+        .auth-pw-wrap { position: relative; }
+        .auth-pw-wrap input { padding-right: 2.6rem; }
+        .auth-pw-toggle { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; line-height: 1; font-size: 1rem; }
+        .auth-pw-toggle:hover { color: var(--text-primary); }
         .auth-submit { width: 100%; margin-top: 1.4rem; padding: 0.75rem; font-size: 1rem; font-weight: 800; }
         .auth-error { font-size: 0.85rem; color: #c26b6b; margin-top: 0.8rem; text-align: center; min-height: 1.2em; }
         .auth-switch { text-align: center; font-size: 0.83rem; color: var(--text-muted); margin-top: 1rem; }
@@ -1784,7 +1788,10 @@
                 </div>
                 <div class="auth-field">
                     <label>Password</label>
-                    <input type="password" id="auth-login-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') authLogin()">
+                    <div class="auth-pw-wrap">
+                        <input type="password" id="auth-login-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') authLogin()">
+                        <button type="button" class="auth-pw-toggle" onclick="togglePw('auth-login-password',this)" tabindex="-1" aria-label="Show password">👁</button>
+                    </div>
                 </div>
                 <button class="btn btn-primary auth-submit" onclick="authLogin()">Sign In</button>
                 <div class="auth-error" id="auth-login-error"></div>
@@ -1805,7 +1812,10 @@
                 </div>
                 <div class="auth-field">
                     <label>Password</label>
-                    <input type="password" id="auth-reg-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter') authRegister()">
+                    <div class="auth-pw-wrap">
+                        <input type="password" id="auth-reg-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter') authRegister()">
+                        <button type="button" class="auth-pw-toggle" onclick="togglePw('auth-reg-password',this)" tabindex="-1" aria-label="Show password">👁</button>
+                    </div>
                 </div>
                 <button class="btn btn-primary auth-submit" onclick="authRegister()">Create Account</button>
                 <div class="auth-error" id="auth-reg-error"></div>
@@ -5379,6 +5389,13 @@ function switchAuthTab(tab) {
     else sub.textContent = 'Sign in to save your progress';
 }
 
+function togglePw(fieldId, btn) {
+    const inp = document.getElementById(fieldId);
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
 let _authLoginInFlight = false;
 async function authLogin() {
     if (_authLoginInFlight) return;
@@ -5395,11 +5412,25 @@ async function authLogin() {
         _wakeTimer = setTimeout(() => {
             if (btn) btn.textContent = 'Server warming up…';
         }, 5000);
-        const { access_token } = await apiAuthFetch('/login', 'POST', { username, password });
-        setAuthToken(access_token);
-        await initAuth();
-    } catch(e) {
-        errEl.textContent = e.message || 'Login failed.';
+        // Retry up to 3 times on server errors (cold start / DB not ready yet)
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const { access_token } = await apiAuthFetch('/login', 'POST', { username, password });
+                setAuthToken(access_token);
+                await initAuth();
+                return;
+            } catch(e) {
+                lastErr = e;
+                // Only retry on server/network errors, not auth errors (4xx)
+                const isServerErr = !e.message || e.message.includes('fetch') ||
+                    e.message.includes('execute') || e.message.includes('500') ||
+                    e.message.includes('502') || e.message.includes('503');
+                if (!isServerErr || attempt === 2) break;
+                await new Promise(r => setTimeout(r, 4000));
+            }
+        }
+        errEl.textContent = lastErr?.message || 'Login failed.';
     } finally {
         clearTimeout(_wakeTimer);
         _authLoginInFlight = false;
