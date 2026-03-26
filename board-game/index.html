@@ -632,7 +632,7 @@
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; color: white; font-size: 0.75rem;
         }
-        .lb-name { font-weight: 600; color: #60a5fa; }
+        .lb-name { font-weight: 600; color: #f5a05a; }
         .lb-elo { font-weight: 800; color: var(--accent); }
         .lb-wins, .lb-losses { color: var(--text-secondary); font-weight: 600; }
         .me-badge {
@@ -2796,7 +2796,7 @@ function matchRowHtml(m, clickable) {
     const isRated = !m.isBot;
     const typeTag = m.isBot
         ? ''
-        : `<span style="font-size:0.68rem;background:rgba(96,165,250,0.12);border:1px solid #60a5fa;border-radius:4px;padding:1px 5px;color:#60a5fa;font-weight:700;">RATED</span>`;
+        : `<span style="font-size:0.68rem;background:rgba(245,160,90,0.12);border:1px solid #f5a05a;border-radius:4px;padding:1px 5px;color:#f5a05a;font-weight:700;">RATED</span>`;
     const resultColor = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
     const eloTag = (isRated && m.eloChange !== 0)
         ? `<span style="color:${m.eloChange > 0 ? '#6bb577' : '#c26b6b'}; font-size:0.78rem; font-weight:700;">${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>` : '';
@@ -2807,7 +2807,7 @@ function matchRowHtml(m, clickable) {
     const rowStyle = (clickable && hasReplay) ? '' : 'cursor:default;';
     const oppDisplay = (m.isBot || !m.opponent || m.opponent === 'Bot')
         ? `<span style="color:var(--text-secondary);">${m.opponent || 'Bot'}</span>`
-        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#60a5fa;cursor:pointer;font-weight:700;">${m.opponent}</span>`;
+        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>`;
     return `<div class="match-row" ${onclick} style="${rowStyle}">
         <span style="color:${resultColor}; font-weight:700; text-transform:uppercase;
             font-size:0.8rem; min-width:48px;">${m.result}</span>
@@ -4707,7 +4707,7 @@ function _renderPPMatches() {
         let ratedTag = '';
         if (!m.is_bot) {
             ratedTag = m.rated
-                ? '<span style="font-size:0.68rem;background:rgba(96,165,250,0.12);border:1px solid #60a5fa;border-radius:4px;padding:1px 5px;color:#60a5fa;font-weight:700;">RATED</span>'
+                ? '<span style="font-size:0.68rem;background:rgba(245,160,90,0.12);border:1px solid #f5a05a;border-radius:4px;padding:1px 5px;color:#f5a05a;font-weight:700;">RATED</span>'
                 : '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">UNRATED</span>';
         }
         let oppHtml;
@@ -4715,7 +4715,7 @@ function _renderPPMatches() {
             oppHtml = '<span style="color:var(--text-secondary);">Bot</span>';
         } else {
             const eloSuffix = m.opponent_elo ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${m.opponent_elo})</span>` : '';
-            oppHtml = `<span onclick="viewPlayerProfile('${m.opponent.replace(/'/g,"\\'")}','player-profile')" style="color:#60a5fa;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
+            oppHtml = `<span onclick="viewPlayerProfile('${m.opponent.replace(/'/g,"\\'")}','player-profile')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
         }
         let eloTag = '';
         if (m.rated && !m.is_bot && m.elo_change !== 0) {
