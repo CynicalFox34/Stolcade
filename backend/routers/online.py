@@ -108,6 +108,7 @@ async def _update_elo(gid: str, winner: int):
             elo_p2_before = p2_elo_before,
             elo_p2_after  = p2_elo_after,
             is_bot        = False,
+            rated         = is_rated,
         ))
         db.commit()
     finally:

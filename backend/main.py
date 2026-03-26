@@ -11,6 +11,7 @@ Open: http://localhost:8080
 """
 import os, sys, json, random, string, subprocess, time
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
@@ -49,6 +50,13 @@ def _mp_cleanup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)  # create DB tables on startup
+    # Migration: add 'rated' column to matches if it doesn't exist yet
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE matches ADD COLUMN rated BOOLEAN DEFAULT TRUE"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
     yield
 
 app = FastAPI(title="Stolcade", lifespan=lifespan)

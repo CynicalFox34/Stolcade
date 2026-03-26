@@ -52,20 +52,15 @@ def leaderboard(db: Session = Depends(get_db),
             me_in_top = True
         result.append({
             "rank": i, "username": u.username,
-            "elo": round(u.elo), "wins": u.wins,
-            "losses": u.losses, "draws": u.draws,
-            "is_me": is_me,
+            "elo": round(u.elo), "is_me": is_me,
         })
 
     # Always include current user at the bottom if not already in top 50
     if not me_in_top:
-        total = db.query(User).count()
-        rank  = db.query(User).filter(User.elo > current_user.elo).count() + 1
+        rank = db.query(User).filter(User.elo > current_user.elo).count() + 1
         result.append({
             "rank": rank, "username": current_user.username,
-            "elo": round(current_user.elo), "wins": current_user.wins,
-            "losses": current_user.losses, "draws": current_user.draws,
-            "is_me": True,
+            "elo": round(current_user.elo), "is_me": True,
         })
 
     return result
@@ -78,7 +73,7 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
     if not u:
         raise HTTPException(404, "User not found")
 
-    # Recent matches
+    # Recent matches (last 50, all games for history display)
     matches = (db.query(Match)
                .filter(or_(Match.player1_id == u.id, Match.player2_id == u.id))
                .order_by(Match.created_at.desc())
@@ -96,15 +91,29 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
             elo_before = m.elo_p2_before
             elo_after  = m.elo_p2_after
             opp_id     = m.player1_id
-        opp_user = db.query(User).filter(User.id == opp_id).first() if opp_id else None
-        elo_change = ((elo_after or 0) - (elo_before or 0))
+        opp_user   = db.query(User).filter(User.id == opp_id).first() if opp_id else None
+        is_rated   = m.rated if m.rated is not None else (not m.is_bot)
+        elo_change = ((elo_after or 0) - (elo_before or 0)) if is_rated else 0
         recent.append({
-            "result":     result,
-            "opponent":   opp_user.username if opp_user else "Bot",
-            "is_bot":     m.is_bot,
-            "elo_change": elo_change,
-            "date":       m.created_at.isoformat() if m.created_at else None,
+            "result":       result,
+            "opponent":     opp_user.username if opp_user else "Bot",
+            "opponent_elo": round(opp_user.elo) if opp_user else None,
+            "is_bot":       m.is_bot,
+            "rated":        is_rated,
+            "elo_change":   elo_change,
+            "date":         m.created_at.isoformat() if m.created_at else None,
         })
+
+    # Rated stats: query ALL rated non-bot matches for accurate lifetime counts
+    all_rated = (db.query(Match)
+                 .filter(
+                     or_(Match.player1_id == u.id, Match.player2_id == u.id),
+                     Match.is_bot == False,
+                     or_(Match.rated == True, Match.rated == None),
+                 ).all())
+    rated_wins   = sum(1 for m in all_rated if (m.result_p1 == 'win')  == (m.player1_id == u.id))
+    rated_losses = sum(1 for m in all_rated if (m.result_p1 == 'loss') == (m.player1_id == u.id))
+    rated_draws  = sum(1 for m in all_rated if m.result_p1 == 'draw')
 
     # Friendship status with the requesting user
     fs = db.query(Friendship).filter(
@@ -118,9 +127,9 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
         "id":                u.id,
         "username":          u.username,
         "elo":               round(u.elo),
-        "wins":              u.wins,
-        "losses":            u.losses,
-        "draws":             u.draws,
+        "wins":              rated_wins,
+        "losses":            rated_losses,
+        "draws":             rated_draws,
         "is_me":             u.id == current_user.id,
         "friendship_status": fs.status if fs else None,
         "recent_matches":    recent,

@@ -38,6 +38,7 @@ class Match(Base):
     elo_p2_before = Column(Integer, nullable=True)
     elo_p2_after  = Column(Integer, nullable=True)
     is_bot       = Column(Boolean, default=False)
+    rated        = Column(Boolean, default=True, nullable=True)
     move_count   = Column(Integer, default=0)
     created_at   = Column(DateTime, server_default=func.now())
 

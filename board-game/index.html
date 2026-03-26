@@ -610,7 +610,7 @@
         }
         .lb-row {
             display: grid;
-            grid-template-columns: 50px 1fr 120px 100px 100px;
+            grid-template-columns: 50px 1fr 120px;
             align-items: center;
             padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--border-inner);
@@ -1620,11 +1620,11 @@
 
         <div class="stats-row">
             <div class="stat-card"><div class="label">ELO</div><div class="val" id="pp-elo" style="color:var(--accent);"></div></div>
-            <div class="stat-card"><div class="label">Wins</div><div class="val" id="pp-wins" style="color:#6bb577;"></div></div>
-            <div class="stat-card"><div class="label">Losses</div><div class="val" id="pp-losses" style="color:#c26b6b;"></div></div>
-            <div class="stat-card"><div class="label">Draws</div><div class="val" id="pp-draws"></div></div>
-            <div class="stat-card"><div class="label">Win Rate</div><div class="val" id="pp-winrate"></div></div>
-            <div class="stat-card"><div class="label">Games</div><div class="val" id="pp-total"></div></div>
+            <div class="stat-card"><div class="label">Wins</div><div class="val" id="pp-wins" style="color:#6bb577;"></div><div class="sub">Ranked only</div></div>
+            <div class="stat-card"><div class="label">Losses</div><div class="val" id="pp-losses" style="color:#c26b6b;"></div><div class="sub">Ranked only</div></div>
+            <div class="stat-card"><div class="label">Draws</div><div class="val" id="pp-draws"></div><div class="sub">Ranked only</div></div>
+            <div class="stat-card"><div class="label">Win Rate</div><div class="val" id="pp-winrate"></div><div class="sub">Ranked only</div></div>
+            <div class="stat-card"><div class="label">Games</div><div class="val" id="pp-total"></div><div class="sub">Ranked only</div></div>
         </div>
 
         <div class="matches-card">
@@ -1761,8 +1761,6 @@
                 <div>#</div>
                 <div>Player</div>
                 <div>ELO</div>
-                <div>Wins</div>
-                <div>Losses</div>
             </div>
             <div id="lb-body">
                 <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.9rem;">Loading…</div>
@@ -2795,22 +2793,25 @@ function setDashSort(order) {
 function matchRowHtml(m, clickable) {
     const date  = new Date(m.ts);
     const label = `${date.getMonth()+1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
-    const botTag = m.isBot ? `<span style="font-size:0.7rem; background:var(--bg-primary);
-        border:1px solid var(--border-inner); border-radius:4px; padding:1px 5px;
-        color:var(--text-muted);">BOT</span>` : '';
+    const isRated = !m.isBot;
+    const typeTag = m.isBot
+        ? `<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">BOT</span>`
+        : `<span style="font-size:0.68rem;background:rgba(var(--accent-rgb,180,100,40),0.12);border:1px solid var(--accent);border-radius:4px;padding:1px 5px;color:var(--accent);font-weight:700;">RATED</span>`;
     const resultColor = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
-    const eloTag = (!m.isBot && m.eloChange !== 0)
-        ? `<span style="color:${m.eloChange > 0 ? '#6bb577' : '#c26b6b'}; font-size:0.78rem; font-weight:700;">
-            ${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>` : '';
+    const eloTag = (isRated && m.eloChange !== 0)
+        ? `<span style="color:${m.eloChange > 0 ? '#6bb577' : '#c26b6b'}; font-size:0.78rem; font-weight:700;">${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>` : '';
     const hasReplay = getReplay(m.ts) !== null;
     const replayBtn = (clickable && hasReplay)
         ? `<span style="font-size:0.75rem; color:var(--accent); font-weight:700;">▶ Watch</span>` : '';
     const onclick = (clickable && hasReplay) ? `onclick="replayMatch(${m.ts})"` : '';
     const rowStyle = (clickable && hasReplay) ? '' : 'cursor:default;';
+    const oppDisplay = (m.isBot || !m.opponent || m.opponent === 'Bot')
+        ? `<span style="color:var(--text-secondary);">${m.opponent || 'Bot'}</span>`
+        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:var(--accent);cursor:pointer;font-weight:700;">${m.opponent}</span>`;
     return `<div class="match-row" ${onclick} style="${rowStyle}">
         <span style="color:${resultColor}; font-weight:700; text-transform:uppercase;
             font-size:0.8rem; min-width:48px;">${m.result}</span>
-        <span style="flex:1; color:var(--text-secondary);">vs ${m.opponent || 'Unknown'} ${botTag}</span>
+        <span style="flex:1;display:flex;align-items:center;gap:0.4rem;">vs ${oppDisplay} ${typeTag}</span>
         ${eloTag}
         <span style="color:var(--text-muted); font-size:0.78rem;">${label}</span>
         <span style="color:var(--text-muted); font-size:0.78rem;">${m.moves || '?'} moves</span>
@@ -4311,8 +4312,6 @@ async function loadLeaderboard() {
                 <div class="lb-rank">${rank}</div>
                 <div class="lb-player" onclick="viewPlayerProfile('${r.username.replace(/'/g,"\\'")}','leaderboard');event.stopPropagation();" style="cursor:pointer;"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
                 <div class="lb-elo">${r.elo}</div>
-                <div class="lb-wins">${r.wins}</div>
-                <div class="lb-losses">${r.losses}</div>
             </div>`;
         }).join('');
     } catch(e) {
@@ -4657,7 +4656,7 @@ function _populatePlayerProfile(data) {
     document.getElementById('pp-username').textContent = data.username;
     const total = data.wins + data.losses + data.draws;
     const wr = total > 0 ? Math.round(data.wins / total * 100) : 0;
-    document.getElementById('pp-sub').textContent = `ELO ${data.elo}  ·  ${total} games  ·  ${wr}% win rate`;
+    document.getElementById('pp-sub').textContent = `ELO ${data.elo}  ·  ${total} rated games  ·  ${wr}% win rate`;
     document.getElementById('pp-elo').textContent = data.elo;
     document.getElementById('pp-wins').textContent = data.wins;
     document.getElementById('pp-losses').textContent = data.losses;
@@ -4704,15 +4703,27 @@ function _renderPPMatches() {
     }
     container.innerHTML = sorted.map(m => {
         const color = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
-        const eloStr = m.elo_change > 0 ? `+${m.elo_change}` : `${m.elo_change}`;
-        const eloColor = m.elo_change > 0 ? '#6bb577' : m.elo_change < 0 ? '#c26b6b' : 'var(--text-muted)';
-        const opp = m.is_bot ? 'Bot' : m.opponent;
         const dateStr = m.date ? new Date(m.date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'2-digit'}) : '';
-        const botTag = m.is_bot ? '<span style="font-size:0.7rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);">BOT</span>' : '';
-        const eloTag = (!m.is_bot && m.elo_change !== 0) ? `<span style="color:${eloColor};font-size:0.78rem;font-weight:700;">${eloStr}</span>` : '';
+        const ratedTag = m.rated
+            ? '<span style="font-size:0.68rem;background:rgba(var(--accent-rgb,180,100,40),0.12);border:1px solid var(--accent);border-radius:4px;padding:1px 5px;color:var(--accent);font-weight:700;">RATED</span>'
+            : (m.is_bot ? '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">BOT</span>'
+                        : '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">UNRATED</span>');
+        let oppHtml;
+        if (m.is_bot) {
+            oppHtml = '<span style="color:var(--text-secondary);">Bot</span>';
+        } else {
+            const eloSuffix = m.opponent_elo ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${m.opponent_elo})</span>` : '';
+            oppHtml = `<span onclick="viewPlayerProfile('${m.opponent.replace(/'/g,"\\'")}','player-profile')" style="color:var(--accent);cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
+        }
+        let eloTag = '';
+        if (m.rated && m.elo_change !== 0) {
+            const eloStr = m.elo_change > 0 ? `+${m.elo_change}` : `${m.elo_change}`;
+            const eloColor = m.elo_change > 0 ? '#6bb577' : '#c26b6b';
+            eloTag = `<span style="color:${eloColor};font-size:0.78rem;font-weight:700;">${eloStr}</span>`;
+        }
         return `<div class="match-row" style="cursor:default;">
             <span style="color:${color};font-weight:700;text-transform:uppercase;font-size:0.8rem;min-width:48px;">${m.result}</span>
-            <span style="flex:1;color:var(--text-secondary);">vs ${opp} ${botTag}</span>
+            <span style="flex:1;display:flex;align-items:center;gap:0.4rem;">vs ${oppHtml} ${ratedTag}</span>
             ${eloTag}
             <span style="color:var(--text-muted);font-size:0.78rem;">${dateStr}</span>
         </div>`;
