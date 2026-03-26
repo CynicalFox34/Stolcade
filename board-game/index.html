@@ -1232,17 +1232,17 @@
                 overflow: hidden;
             }
 
-            /* Board cell size on mobile — 32 px fits 11 cols within 390 px screens */
-            :root { --cell: 32px; }
+            /* Board cell size on mobile — 28 px gives a bit more breathing room */
+            :root { --cell: 28px; }
 
-            /* Recalculate center-line gradient for 32 px cells (col*34px, gap=2px fixed) */
+            /* Recalculate center-line gradient for 28 px cells (col*30px, gap=2px fixed) */
             #game-board::after, #online-preview-board::after {
                 background: linear-gradient(90deg,
-                    var(--center-line) 0,        var(--center-line) 66.24px,
-                    transparent        66.24px,  transparent        135.76px,
-                    var(--center-line) 135.76px, var(--center-line) 236.24px,
-                    transparent        236.24px, transparent        305.76px,
-                    var(--center-line) 305.76px, var(--center-line) 100%
+                    var(--center-line) 0,        var(--center-line) 58.24px,
+                    transparent        58.24px,  transparent        119.76px,
+                    var(--center-line) 119.76px, var(--center-line) 208.24px,
+                    transparent        208.24px, transparent        269.76px,
+                    var(--center-line) 269.76px, var(--center-line) 100%
                 );
             }
 
@@ -1330,10 +1330,6 @@
             .board-wrap::-webkit-scrollbar { display: none; }
 
             #btn-hist-close    { display: block !important; }
-            #btn-more          { display: inline-flex !important; }
-            #btn-review-mobile { display: inline-flex !important; }
-            #resign-confirm-modal:not(.hidden) { display: flex !important; }
-            #mobile-review-bar:not(.hidden)    { display: flex !important; }
 
             /* Board absolutely positioned so snap panels control scroll height */
             #game-board, #online-preview-board {
@@ -1424,7 +1420,7 @@
                 padding: 0.15rem 0.45rem;
             }
 
-            /* ── Compact game controls ── */
+            /* ── Compact pregame controls ── */
             #pregame-controls {
                 flex-direction: row;
                 flex-wrap: wrap;
@@ -1440,74 +1436,10 @@
             #pregame-controls select { flex: 1; min-width: 110px; }
             #pregame-controls .btn  { width: auto; padding: 0.5rem 1rem; }
 
-            #ingame-controls {
-                flex-direction: row;
-                align-items: center;
-                padding: 0.4rem 0.8rem;
-                gap: 0.45rem;
-                background: none; border: none; box-shadow: none;
-                border-top: 1px solid var(--border-inner);
-            }
-            #ingame-controls #ingame-info { display: none; }
-            #ingame-controls .btn {
-                flex: 1; min-width: 0; width: auto;
-                padding: 0.42rem 0; font-size: 0.8rem; text-align: center;
-            }
+            /* Hide ingame controls entirely on mobile — just show the player cards */
+            #ingame-controls { display: none !important; }
 
-            /* ── Resign confirmation modal ── */
-            #resign-confirm-modal {
-                position: fixed; inset: 0; z-index: 600;
-                background: rgba(0,0,0,0.72);
-                display: flex; align-items: center; justify-content: center;
-            }
-            #resign-confirm-modal.hidden { display: none !important; }
-            .resign-card {
-                background: var(--bg-secondary);
-                border: 1px solid var(--border);
-                border-radius: 14px;
-                padding: 1.6rem 1.8rem;
-                text-align: center;
-                max-width: 300px; width: 90%;
-                box-shadow: var(--shadow-lg);
-            }
-            .resign-card h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; }
-            .resign-card p  { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.3rem; }
-            .resign-card-btns { display: flex; gap: 0.6rem; }
-            .resign-card-btns .btn { flex: 1; }
-
-            /* ── More-menu popup ── */
-            #more-menu-popup {
-                position: fixed;
-                left: 0.8rem; right: 0.8rem;
-                z-index: 500;
-                background: var(--bg-secondary);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 0.9rem 1rem;
-                box-shadow: var(--shadow-md);
-                display: flex; flex-direction: column; gap: 0.75rem;
-            }
-            #more-menu-popup.hidden { display: none !important; }
-            .mm-row {
-                display: flex; align-items: center; gap: 0.75rem;
-                font-size: 0.9rem; color: var(--text-primary);
-            }
-            .mm-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-                        letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.1rem; }
-
-            /* ── Mobile review bar ── */
-            #mobile-review-bar {
-                position: fixed;
-                left: 0; right: 0;
-                z-index: 300;
-                background: var(--bg-secondary);
-                border-top: 1px solid var(--border-inner);
-                display: flex; align-items: center; justify-content: center;
-                gap: 0.3rem;
-                padding: 0.4rem 0.8rem;
-                bottom: 56px; /* above bottom-nav */
-            }
-            #mobile-review-bar.hidden { display: none !important; }
+            /* ── Mobile review bar (unused on mobile but keep structure) ── */
             .mrb-btn {
                 width: 36px; height: 36px;
                 border-radius: 8px;
@@ -1609,7 +1541,18 @@
            ═══════════════════════════════════════════════════ */
         .lp {
             position: fixed; inset: 0; z-index: 800;
-            background: #17191f; color: #e8eaed;
+            /* Always light theme regardless of body.dark */
+            --bg-primary:    #d0d4d9;
+            --bg-secondary:  #e3e6ea;
+            --bg-tertiary:   #f2f3f5;
+            --text-primary:  #1e2637;
+            --text-secondary:#4a5568;
+            --text-muted:    #718096;
+            --border:        rgba(255,255,255,0.5);
+            --border-inner:  rgba(0,0,0,0.09);
+            --shadow-lg:     0 20px 50px rgba(0,0,0,0.18);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow-y: auto; overflow-x: hidden;
             font-family: 'Outfit', sans-serif;
         }
@@ -1619,12 +1562,12 @@
             position: sticky; top: 0; z-index: 10;
             display: flex; align-items: center; justify-content: space-between;
             padding: 1rem 2.5rem;
-            background: rgba(23,25,31,0.92);
+            background: rgba(208,212,217,0.92);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255,255,255,0.07);
+            border-bottom: 1px solid var(--border-inner);
         }
-        .lp-logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; color: #e8eaed; }
-        .lp-logo span { color: #d4814e; }
+        .lp-logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text-primary); }
+        .lp-logo span { color: var(--accent); }
         .lp-nav-btns { display: flex; gap: 0.65rem; align-items: center; }
 
         .lp-btn {
@@ -1633,13 +1576,13 @@
             transition: background 0.15s, transform 0.12s, border-color 0.15s;
             border: none;
         }
-        .lp-btn-primary { background: #b5622a; color: #fff; }
-        .lp-btn-primary:hover { background: #d4814e; transform: translateY(-1px); }
+        .lp-btn-primary { background: var(--accent); color: #fff; }
+        .lp-btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
         .lp-btn-ghost {
-            background: transparent; color: #c0c8d6;
-            border: 1px solid rgba(255,255,255,0.18);
+            background: transparent; color: var(--text-secondary);
+            border: 1px solid var(--border-inner);
         }
-        .lp-btn-ghost:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.3); }
+        .lp-btn-ghost:hover { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.18); }
         .lp-btn-lg { padding: 0.78rem 1.7rem; font-size: 1rem; }
 
         /* ── Hero ── */
@@ -1652,100 +1595,93 @@
         .lp-eyebrow {
             display: inline-flex; align-items: center; gap: 0.5rem;
             font-size: 0.76rem; font-weight: 700; letter-spacing: 0.09em;
-            text-transform: uppercase; color: #d4814e;
-            background: rgba(212,129,78,0.10); border: 1px solid rgba(212,129,78,0.22);
+            text-transform: uppercase; color: var(--accent);
+            background: rgba(181,98,42,0.08); border: 1px solid rgba(181,98,42,0.20);
             padding: 0.28rem 0.75rem; border-radius: 100px; margin-bottom: 1.3rem;
         }
         .lp-hero-title {
             font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 900;
             line-height: 1.07; letter-spacing: -1.5px;
-            color: #f0f2f5; margin-bottom: 1.2rem;
+            color: var(--text-primary); margin-bottom: 1.2rem;
         }
-        .lp-hero-title span { color: #d4814e; }
+        .lp-hero-title span { color: var(--accent); }
         .lp-hero-sub {
-            font-size: 1.07rem; line-height: 1.65; color: #8a94a6;
+            font-size: 1.07rem; line-height: 1.65; color: var(--text-secondary);
             margin-bottom: 2.1rem; max-width: 460px;
         }
         .lp-hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
-        /* ── Hero board ── */
+        /* ── Hero board (real game board at 24px cells) ── */
         .lp-board-wrap { flex-shrink: 0; perspective: 900px; }
-        .lp-board {
+        #lp-game-board {
+            --cell: 24px;
             display: grid;
-            grid-template-columns: repeat(11, 20px);
-            grid-template-rows: repeat(14, 20px);
-            gap: 2px; background: #3a4255; border: 3px solid #3a4255;
-            padding: 3px; border-radius: 6px;
-            box-shadow: 0 28px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+            grid-template-columns: repeat(11, var(--cell));
+            grid-template-rows: repeat(20, var(--cell));
+            gap: 2px;
+            padding: 3px;
+            background: #4a5260;
+            border: 3px solid #4a5260;
+            border-radius: 6px;
+            box-shadow: var(--shadow-lg);
             position: relative;
             transform: rotateY(-8deg) rotateX(4deg);
             transition: transform 0.5s ease;
         }
-        .lp-board:hover { transform: rotateY(-3deg) rotateX(2deg); }
-        .lp-board::after {
+        #lp-game-board:hover { transform: rotateY(-3deg) rotateX(2deg); }
+        #lp-game-board::after {
             content: ''; position: absolute;
-            left: 3px; right: 3px; top: calc(50% - 3px); height: 6px; z-index: 5;
-            pointer-events: none;
+            left: 3px; right: 3px;
+            top: calc(50% - 3.06px); height: 6px;
             background: linear-gradient(90deg,
-                #c04f4f 0,           #c04f4f 42.24px,
-                transparent 42.24px, transparent 87.76px,
-                #c04f4f 87.76px,     #c04f4f 174.24px,
-                transparent 174.24px,transparent 197.76px,
-                #c04f4f 197.76px,    #c04f4f 100%
+                var(--center-line) 0,        var(--center-line) 50.24px,
+                transparent        50.24px,  transparent        103.76px,
+                var(--center-line) 103.76px, var(--center-line) 180.24px,
+                transparent        180.24px, transparent        233.76px,
+                var(--center-line) 233.76px, var(--center-line) 100%
             );
+            z-index: 5;
+            pointer-events: none;
         }
-        .lp-cell {
-            width: 20px; height: 20px; border-radius: 1px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .lp-cl { background: #c8b89a; }
-        .lp-cd { background: #9eadbf; }
-        .lp-piece {
-            width: 13px; height: 13px; border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.45);
-        }
-        .lp-p1 { background: radial-gradient(circle at 38% 35%, #e89a60, #9a4a1a); }
-        .lp-p2 { background: radial-gradient(circle at 38% 35%, #c8d4e0, #6a8098); }
-        .lp-pv { width: 15px; height: 15px; box-shadow: 0 0 7px rgba(255,210,90,0.85), 0 2px 4px rgba(0,0,0,0.4); }
 
         /* ── Feature sections ── */
         .lp-features { max-width: 1080px; margin: 0 auto; padding: 0 2.5rem; }
         .lp-feat {
             display: flex; align-items: center; gap: 5rem;
-            padding: 5rem 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding: 5rem 0; border-bottom: 1px solid var(--border-inner);
         }
         .lp-feat-r { flex-direction: row-reverse; }
         .lp-feat-vis {
             flex-shrink: 0; width: 300px; height: 230px;
-            background: rgba(255,255,255,0.025);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.04);
+            border: 1px solid var(--border-inner);
             border-radius: 16px;
             display: flex; align-items: center; justify-content: center;
         }
         .lp-feat-txt { flex: 1; max-width: 460px; }
         .lp-feat-txt h2 {
-            font-size: 1.95rem; font-weight: 800; color: #f0f2f5;
+            font-size: 1.95rem; font-weight: 800; color: var(--text-primary);
             letter-spacing: -0.4px; margin-bottom: 0.85rem;
         }
         .lp-feat-txt p {
-            font-size: 1rem; line-height: 1.7; color: #8a94a6; margin-bottom: 1.5rem;
+            font-size: 1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 1.5rem;
         }
 
         /* ── Bottom CTA ── */
         .lp-cta {
-            background: linear-gradient(135deg, rgba(181,98,42,0.13) 0%, rgba(212,129,78,0.07) 100%);
+            background: linear-gradient(135deg, rgba(181,98,42,0.10) 0%, rgba(181,98,42,0.05) 100%);
             border-top: 1px solid rgba(181,98,42,0.18);
             padding: 5.5rem 2rem; text-align: center; margin-top: 4rem;
         }
         .lp-cta h2 {
-            font-size: 2.5rem; font-weight: 900; color: #f0f2f5;
+            font-size: 2.5rem; font-weight: 900; color: var(--text-primary);
             letter-spacing: -1px; margin-bottom: 0.6rem;
         }
-        .lp-cta p { font-size: 1.05rem; color: #8a94a6; margin-bottom: 2rem; }
+        .lp-cta p { font-size: 1.05rem; color: var(--text-secondary); margin-bottom: 2rem; }
 
         .lp-footer {
             padding: 1.5rem 2.5rem; text-align: center;
-            font-size: 0.8rem; color: #3a4255; letter-spacing: 0.05em;
+            font-size: 0.8rem; color: var(--text-muted); letter-spacing: 0.05em;
         }
 
         /* ── Landing mobile ── */
@@ -1760,7 +1696,7 @@
             .lp-hero-btns { justify-content: center; }
             .lp-hero-sub { margin-inline: auto; }
             .lp-board-wrap { perspective: none; }
-            .lp-board { transform: none !important; }
+            #lp-game-board { transform: none !important; }
             .lp-features { padding: 0 1.2rem; }
             .lp-feat, .lp-feat-r { flex-direction: column; gap: 2rem; padding: 3rem 0; }
             .lp-feat-vis { width: 100%; max-width: 360px; height: 160px; }
@@ -1799,7 +1735,7 @@
             </div>
         </div>
         <div class="lp-board-wrap">
-            <div class="lp-board" id="lp-hero-board"></div>
+            <div id="lp-game-board"></div>
         </div>
     </section>
 
@@ -3088,44 +3024,147 @@ function showLandingAuth(tab) {
     document.getElementById('auth-modal').classList.remove('hidden');
 }
 
-function renderLandingBoard() {
-    const el = document.getElementById('lp-hero-board');
+// ── Landing board: uses real game CSS classes at --cell:24px ──
+
+const _LP_BLOCKED = new Set(['9,2','9,3','9,7','9,8','10,2','10,3','10,7','10,8']);
+
+// Mid-game snapshot: 0=empty 1=P1(grey) 2=P2(orange) 3=P1 veylant 4=P2 veylant
+const _LP_INIT = [
+    [0,0,0,0,0,0,0,0,0,0,0], // row 0  P2 goal
+    [0,1,0,0,0,0,0,1,0,0,0], // row 1
+    [1,0,0,0,0,1,0,0,0,1,0], // row 2
+    [0,0,1,0,0,0,0,0,1,0,0], // row 3
+    [0,1,0,0,1,0,0,1,0,0,0], // row 4
+    [1,0,0,0,0,0,1,0,0,0,1], // row 5
+    [0,0,0,1,0,0,0,0,0,1,0], // row 6
+    [0,1,0,0,0,1,0,0,1,0,0], // row 7
+    [0,0,1,0,0,0,0,0,0,0,1], // row 8
+    [0,0,0,0,0,1,0,0,0,0,0], // row 9  (cols 2,3,7,8 blocked)
+    [0,2,0,0,0,0,2,0,0,2,0], // row 10 (cols 2,3,7,8 blocked)
+    [2,0,0,0,0,2,0,0,0,0,2], // row 11
+    [0,0,2,0,2,0,0,0,2,0,0], // row 12
+    [0,2,0,0,0,0,2,0,0,2,0], // row 13
+    [2,0,0,0,0,2,0,0,0,0,0], // row 14
+    [0,0,2,0,2,0,0,2,0,0,2], // row 15
+    [0,2,0,0,0,0,0,0,2,0,0], // row 16
+    [2,0,0,2,0,0,0,2,0,0,0], // row 17
+    [0,0,2,0,0,0,2,0,0,0,2], // row 18
+    [0,0,0,0,0,0,0,0,0,0,0], // row 19 P1 goal
+];
+
+// Animation sequence: [fromR, fromC, toR, toC]
+const _LP_MOVES = [
+    [5, 6, 6, 6],   // P1 advances toward row 19
+    [14, 5, 13, 5], // P2 advances toward row 0
+    [7, 5, 8, 5],   // P1 advances
+    [12, 4, 11, 4], // P2 advances
+];
+
+let _lpBoard = null;
+let _lpStep  = 0;
+let _lpTimer = null;
+
+function initLandingBoard() {
+    const el = document.getElementById('lp-game-board');
     if (!el) return;
-    // 11 cols × 14 rows mid-game snapshot
-    // 0=empty 1=orange 2=grey 3=orange Veylant 4=grey Veylant
-    const D = [
-        [0,0,1,0,0,0,0,1,0,0,0],
-        [0,1,0,0,0,1,0,0,0,0,0],
-        [1,0,0,1,0,0,0,0,1,0,0],
-        [0,0,1,0,0,0,1,0,0,1,0],
-        [0,3,0,0,0,0,0,0,1,0,0],
-        [1,0,0,1,0,0,1,0,0,0,1],
-        [0,0,1,0,0,0,0,1,0,0,0],
-        [0,2,0,2,0,0,0,0,2,0,0],
-        [2,0,0,0,0,2,0,2,0,0,2],
-        [0,0,2,0,0,0,2,0,0,2,0],
-        [0,2,0,0,2,0,0,0,0,0,2],
-        [0,0,0,2,0,0,2,0,2,0,0],
-        [0,4,0,0,0,0,0,0,0,2,0],
-        [2,0,0,2,0,0,0,2,0,0,0],
-    ];
+    _lpBoard = _LP_INIT.map(r => [...r]);
     let h = '';
-    for (let r = 0; r < D.length; r++) {
-        for (let c = 0; c < D[r].length; c++) {
-            const bg = (r + c) % 2 === 0 ? 'lp-cl' : 'lp-cd';
-            const v = D[r][c];
-            let p = '';
-            if (v === 1) p = '<div class="lp-piece lp-p1"></div>';
-            else if (v === 2) p = '<div class="lp-piece lp-p2"></div>';
-            else if (v === 3) p = '<div class="lp-piece lp-p1 lp-pv"></div>';
-            else if (v === 4) p = '<div class="lp-piece lp-p2 lp-pv"></div>';
-            h += `<div class="lp-cell ${bg}">${p}</div>`;
+    for (let r = 0; r < 20; r++) {
+        for (let c = 0; c < 11; c++) {
+            const blocked = _LP_BLOCKED.has(`${r},${c}`);
+            let cls = 'cell';
+            if (blocked) {
+                cls += ' blocked';
+            } else {
+                if (c === 5)     cls += ' col-mid';
+                else if (r < 10) cls += ' half-top';
+                else             cls += ' half-bot';
+                if (r === 19)    cls += ' goal-p1';
+                if (r === 0)     cls += ' goal-p2';
+            }
+            const v = blocked ? 0 : (_lpBoard[r][c] || 0);
+            let piece = '';
+            if      (v === 1) piece = '<div class="piece p1"></div>';
+            else if (v === 2) piece = '<div class="piece p2"></div>';
+            else if (v === 3) piece = '<div class="piece p1 veylant"></div>';
+            else if (v === 4) piece = '<div class="piece p2 veylant"></div>';
+            h += `<div class="${cls}" data-r="${r}" data-c="${c}">${piece}</div>`;
         }
     }
     el.innerHTML = h;
 }
 
-renderLandingBoard();
+function _lpDoMove() {
+    const el = document.getElementById('lp-game-board');
+    if (!el || document.getElementById('landing-page')?.classList.contains('hidden')) return;
+
+    if (_lpStep >= _LP_MOVES.length) {
+        initLandingBoard();
+        _lpStep = 0;
+        _lpTimer = setTimeout(_lpDoMove, 1500);
+        return;
+    }
+
+    const [fr, fc, tr, tc] = _LP_MOVES[_lpStep];
+    const srcCell = el.querySelector(`.cell[data-r="${fr}"][data-c="${fc}"]`);
+    const tgtCell = el.querySelector(`.cell[data-r="${tr}"][data-c="${tc}"]`);
+    if (!srcCell || !tgtCell) { _lpStep++; _lpDoMove(); return; }
+
+    const piece = srcCell.querySelector('.piece');
+    if (!piece) { _lpStep++; _lpDoMove(); return; }
+
+    // 1. Glow selection
+    piece.classList.add('selected');
+
+    // 2. Show valid-move dot
+    _lpTimer = setTimeout(() => {
+        tgtCell.classList.add('valid-empty');
+
+        // 3. Ghost piece slides to target
+        _lpTimer = setTimeout(() => {
+            const srcR = srcCell.getBoundingClientRect();
+            const tgtR = tgtCell.getBoundingClientRect();
+            const srcX = srcR.left + srcR.width  / 2;
+            const srcY = srcR.top  + srcR.height / 2;
+            const tgtX = tgtR.left + tgtR.width  / 2;
+            const tgtY = tgtR.top  + tgtR.height / 2;
+            const sz   = Math.round(srcR.width * 0.78);
+
+            const ghost = document.createElement('div');
+            ghost.className = piece.className.replace(' selected', '');
+            ghost.style.cssText =
+                `position:fixed;left:${srcX}px;top:${srcY}px;` +
+                `width:${sz}px;height:${sz}px;` +
+                'transform:translate(-50%,-50%);pointer-events:none;z-index:9999;';
+            document.body.appendChild(ghost);
+            piece.style.visibility = 'hidden';
+
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                ghost.style.transition =
+                    'left .45s cubic-bezier(.25,.46,.45,.94),top .45s cubic-bezier(.25,.46,.45,.94)';
+                ghost.style.left = `${tgtX}px`;
+                ghost.style.top  = `${tgtY}px`;
+            }));
+
+            // 4. Settle: update DOM
+            _lpTimer = setTimeout(() => {
+                const pClass = piece.className.replace(' selected', '');
+                srcCell.innerHTML = '';
+                tgtCell.classList.remove('valid-empty');
+                tgtCell.innerHTML = `<div class="${pClass}"></div>`;
+                document.body.removeChild(ghost);
+                _lpBoard[fr][fc] = 0;
+                _lpBoard[tr][tc] = _LP_INIT[fr][fc];
+
+                _lpStep++;
+                _lpTimer = setTimeout(_lpDoMove, 1200);
+            }, 500);
+        }, 700);
+    }, 400);
+}
+
+initLandingBoard();
+_lpTimer = setTimeout(_lpDoMove, 1200);
 
 // ── Mobile controls ──────────────────────────────────────────
 
