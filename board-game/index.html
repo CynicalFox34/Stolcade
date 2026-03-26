@@ -1690,55 +1690,8 @@
                 <div>Wins</div>
                 <div>Losses</div>
             </div>
-            <div class="lb-row">
-                <div class="lb-rank"><svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#c97c10"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#f0b030"/><circle cx="14" cy="21" r="9" fill="#e8b820"/><circle cx="14" cy="21" r="6.5" stroke="#f8e060" stroke-width="1.8" opacity="0.75"/></svg></div>
-                <div class="lb-player">
-                    <div class="lb-av">GH</div>
-                    <span class="lb-name">GrandHammer</span>
-                </div>
-                <div class="lb-elo">1847</div>
-                <div class="lb-wins">112</div>
-                <div class="lb-losses">23</div>
-            </div>
-            <div class="lb-row">
-                <div class="lb-rank"><svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#5060a0"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#8090c8"/><circle cx="14" cy="21" r="9" fill="#a0aab8"/><circle cx="14" cy="21" r="6.5" stroke="#d0dce8" stroke-width="1.8" opacity="0.75"/></svg></div>
-                <div class="lb-player">
-                    <div class="lb-av">CX</div>
-                    <span class="lb-name">CopperXen</span>
-                </div>
-                <div class="lb-elo">1791</div>
-                <div class="lb-wins">98</div>
-                <div class="lb-losses">31</div>
-            </div>
-            <div class="lb-row">
-                <div class="lb-rank"><svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#b04010"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#e07030"/><circle cx="14" cy="21" r="9" fill="#c07830"/><circle cx="14" cy="21" r="6.5" stroke="#e8a860" stroke-width="1.8" opacity="0.75"/></svg></div>
-                <div class="lb-player">
-                    <div class="lb-av">SR</div>
-                    <span class="lb-name">SlateMind</span>
-                </div>
-                <div class="lb-elo">1744</div>
-                <div class="lb-wins">87</div>
-                <div class="lb-losses">28</div>
-            </div>
-            <div class="lb-row">
-                <div class="lb-rank">4</div>
-                <div class="lb-player">
-                    <div class="lb-av">NR</div>
-                    <span class="lb-name">NullRook</span>
-                </div>
-                <div class="lb-elo">1699</div>
-                <div class="lb-wins">73</div>
-                <div class="lb-losses">44</div>
-            </div>
-            <div class="lb-row">
-                <div class="lb-rank">5</div>
-                <div class="lb-player">
-                    <div class="lb-av" id="lb-me-av">P</div>
-                    <span class="lb-name"><span id="lb-me-name">Player One</span> <span class="me-badge">You</span></span>
-                </div>
-                <div class="lb-elo" id="lb-me-elo">1200</div>
-                <div class="lb-wins" id="lb-me-wins">0</div>
-                <div class="lb-losses" id="lb-me-losses">0</div>
+            <div id="lb-body">
+                <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.9rem;">Loading…</div>
             </div>
         </div>
     </div>
@@ -2228,6 +2181,7 @@ function navigateTo(target) {
             if (target === 'dashboard') { loadHomeDashboard(); }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
             if (target === 'streak') loadStreakPage();
+            if (target === 'leaderboard') loadLeaderboard();
             if (target !== 'streak') clearInterval(streakTickInterval);
         }
     });
@@ -2599,6 +2553,15 @@ function recordMatch({ result, isBot, opponent, moves, endDesc }) {
 
     applyProfile(); // refresh topbar ELO
     updateStreakDisplay();
+
+    // Also record to server DB (fire-and-forget)
+    if (isBot) {
+        apiAuthFetch('/matches', 'POST', {
+            result, is_bot: true,
+            opponent: opponent || 'Bot',
+            move_count: moves || 0
+        }).catch(() => {});
+    }
 }
 
 function updateOverviewStats() {
@@ -4290,6 +4253,36 @@ function mpLoadState(st) {
         showGameOverModal(st.gameWinner, `Player ${st.gameWinner} reached the backline!`);
     } else {
         renderBoard(); updateStatus();
+    }
+}
+
+// ── Leaderboard ───────────────────────────────────────────────
+const MEDAL_SVGS = [
+    `<svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#c97c10"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#f0b030"/><circle cx="14" cy="21" r="9" fill="#e8b820"/><circle cx="14" cy="21" r="6.5" stroke="#f8e060" stroke-width="1.8" opacity="0.75"/></svg>`,
+    `<svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#5060a0"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#8090c8"/><circle cx="14" cy="21" r="9" fill="#a0aab8"/><circle cx="14" cy="21" r="6.5" stroke="#d0dce8" stroke-width="1.8" opacity="0.75"/></svg>`,
+    `<svg width="28" height="30" viewBox="0 0 28 30" fill="none"><path d="M4,2 Q1,2 1,5 L10,14 L14,14 L14,2 Z" fill="#b04010"/><path d="M14,2 L24,2 Q27,2 27,5 L18,14 L14,14 Z" fill="#e07030"/><circle cx="14" cy="21" r="9" fill="#c07830"/><circle cx="14" cy="21" r="6.5" stroke="#e8a860" stroke-width="1.8" opacity="0.75"/></svg>`,
+];
+
+async function loadLeaderboard() {
+    const body = document.getElementById('lb-body');
+    if (!body) return;
+    try {
+        const rows = await apiAuthFetch('/leaderboard', 'GET');
+        body.innerHTML = rows.map(r => {
+            const rank  = r.rank <= 3 ? MEDAL_SVGS[r.rank - 1] : r.rank;
+            const init  = r.username.charAt(0).toUpperCase();
+            const meBadge = r.is_me ? ' <span class="me-badge">You</span>' : '';
+            const rowStyle = r.is_me ? ' style="background:rgba(var(--accent-rgb,180,100,40),0.07);"' : '';
+            return `<div class="lb-row"${rowStyle}>
+                <div class="lb-rank">${rank}</div>
+                <div class="lb-player"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
+                <div class="lb-elo">${r.elo}</div>
+                <div class="lb-wins">${r.wins}</div>
+                <div class="lb-losses">${r.losses}</div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">Could not load leaderboard.</div>';
     }
 }
 

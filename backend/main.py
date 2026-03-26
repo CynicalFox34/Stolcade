@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from .database import engine, Base
 from .routers import auth as auth_router
 from .routers import online as online_router
+from .routers import matches as matches_router
 
 BASE_DIR       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BOARD_GAME_DIR = os.path.join(BASE_DIR, 'board-game')
@@ -54,6 +55,7 @@ app = FastAPI(title="Stolcade", lifespan=lifespan)
 # ── Routers ───────────────────────────────────────────────────
 app.include_router(auth_router.router)
 app.include_router(online_router.router)
+app.include_router(matches_router.router)
 
 
 # ── Existing API endpoints (ported from server.py) ────────────

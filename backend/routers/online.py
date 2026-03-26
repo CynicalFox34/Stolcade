@@ -14,7 +14,7 @@ from jose import JWTError, jwt
 import asyncio, json
 
 from ..database import SessionLocal
-from ..models import User
+from ..models import User, Match
 from ..auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter()
@@ -37,7 +37,7 @@ async def _get_user(token: str):
 
 
 async def _update_elo(gid: str, winner: int):
-    """Update ELO for both players. Pops game from active_games to prevent double-update."""
+    """Update ELO for both players and save match record. Pops game to prevent double-update."""
     game = active_games.pop(gid, None)
     if not game:
         return
@@ -50,14 +50,31 @@ async def _update_elo(gid: str, winner: int):
         K    = 32
         exp1 = 1 / (1 + 10 ** ((p2.elo - p1.elo) / 400))
         exp2 = 1 - exp1
+
+        p1_elo_before = round(p1.elo)
+        p2_elo_before = round(p2.elo)
+
         if winner == 1:
-            s1, s2 = 1.0, 0.0; p1.wins   += 1; p2.losses += 1
+            s1, s2 = 1.0, 0.0; p1.wins   += 1; p2.losses += 1; r1, r2 = 'win',  'loss'
         elif winner == 2:
-            s1, s2 = 0.0, 1.0; p1.losses += 1; p2.wins   += 1
+            s1, s2 = 0.0, 1.0; p1.losses += 1; p2.wins   += 1; r1, r2 = 'loss', 'win'
         else:
-            s1, s2 = 0.5, 0.5; p1.draws  += 1; p2.draws  += 1
+            s1, s2 = 0.5, 0.5; p1.draws  += 1; p2.draws  += 1; r1, r2 = 'draw', 'draw'
+
         p1.elo = max(100, round(p1.elo + K * (s1 - exp1)))
         p2.elo = max(100, round(p2.elo + K * (s2 - exp2)))
+
+        match = Match(
+            player1_id    = p1.id,
+            player2_id    = p2.id,
+            result_p1     = r1,
+            elo_p1_before = p1_elo_before,
+            elo_p1_after  = round(p1.elo),
+            elo_p2_before = p2_elo_before,
+            elo_p2_after  = round(p2.elo),
+            is_bot        = False,
+        )
+        db.add(match)
         db.commit()
     finally:
         db.close()
