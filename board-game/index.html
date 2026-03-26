@@ -970,6 +970,11 @@
         .p-score .sc { color: var(--accent); font-size: 1rem; font-weight: 800; }
         .p-score .sc-denom { color: var(--text-muted); }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50%       { opacity: 1;   transform: scale(1.2); }
+        }
+
         /* ── Auth Modal ── */
         .auth-overlay {
             position: fixed; inset: 0;
@@ -1475,16 +1480,40 @@
 
     <!-- ─── ONLINE MATCHMAKING PAGE ─── -->
     <div id="page-online" class="page hidden fade-in">
-        <div class="page-header" style="text-align:center; padding-top: 5rem;">
-            <h2>Play Online</h2>
-            <p style="margin-top: 0.5rem; color: var(--text-muted);">Compete against players globally to increase your Stolcade ELO.</p>
-            <div style="margin-top: 3rem; background: var(--bg-secondary); padding: 3rem; border-radius: 12px; border: 1px dashed var(--border); display: inline-block;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <h3 style="margin-bottom: 0.5rem;">Matchmaking Service Offline</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 300px; margin: 0 auto;">
-                    Multiplayer servers are currently out of capacity or offline for maintenance. Please check back later or play against the Offline Bot.
-                </p>
-                <button class="btn btn-primary" style="margin-top: 2rem; max-width: 200px; display: inline-block;" onclick="document.querySelector('[data-page=play]').click()">Play Offline Bot</button>
+        <div style="display:flex; align-items:center; justify-content:center; height:100%; padding:2rem;">
+            <div style="background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:20px; padding:3rem 3.5rem; max-width:460px; width:100%; box-shadow:var(--shadow-md); text-align:center;">
+
+                <!-- Idle: find a match -->
+                <div id="online-idle">
+                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">🌐</div>
+                    <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:0.5rem;">Play Online</h2>
+                    <p style="color:var(--text-secondary); font-size:0.93rem; margin-bottom:0.5rem; line-height:1.5;">Compete against players worldwide and earn ELO.</p>
+                    <div style="font-size:0.88rem; color:var(--accent); font-weight:700; margin-bottom:2rem;">Your ELO: <span id="online-my-elo">—</span></div>
+                    <button class="btn btn-primary" style="width:100%; padding:0.9rem; font-size:1rem;" onclick="onlineConnect()">Find Match</button>
+                </div>
+
+                <!-- Searching -->
+                <div id="online-searching" class="hidden">
+                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">⏳</div>
+                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Finding opponent…</h2>
+                    <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:1.8rem;">Looking for a player near your skill level.</p>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:2rem;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite;"></div>
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.2s infinite;"></div>
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.4s infinite;"></div>
+                    </div>
+                    <button class="btn btn-ghost" style="width:100%;" onclick="onlineCancel()">Cancel</button>
+                </div>
+
+                <!-- Matched -->
+                <div id="online-matched" class="hidden">
+                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">⚔️</div>
+                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Opponent Found!</h2>
+                    <div style="font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:0.3rem;" id="online-opp-name">—</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">ELO <span id="online-opp-elo">—</span></div>
+                    <div style="color:var(--text-muted); font-size:0.88rem;">Starting game…</div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -2176,7 +2205,9 @@ const pages    = document.querySelectorAll('.page');
 
 function navigateTo(target) {
     if (target !== 'play') mpStopAll();
-    const navTarget = (target === 'play' && gameMode === 'lan2p') ? 'local2p' : target;
+    const navTarget = (target === 'play' && gameMode === 'lan2p') ? 'local2p'
+                    : (target === 'play' && gameMode === 'online') ? 'online'
+                    : target;
     navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === navTarget));
     const streakChip = document.getElementById('topbar-streak');
     if (streakChip) streakChip.style.display = (target === 'dashboard' || target === 'streak') ? 'none' : 'flex';
@@ -2185,9 +2216,15 @@ function navigateTo(target) {
         p.classList.toggle('hidden', !isTarget);
         if (isTarget) {
             p.classList.remove('fade-in'); void p.offsetWidth; p.classList.add('fade-in');
-            if (target === 'play' && !gameStarted) { if (gameMode !== 'local2p' && gameMode !== 'lan2p') gameMode = 'vsBot'; initGame(); }
+            if (target === 'play' && !gameStarted) { if (gameMode !== 'local2p' && gameMode !== 'lan2p' && gameMode !== 'online') gameMode = 'vsBot'; initGame(); }
             if (target === 'local2p') { mpShowSection('mp-lobby-pick'); document.getElementById('mp-join-input') && (document.getElementById('mp-join-input').value = ''); document.getElementById('mp-join-error') && (document.getElementById('mp-join-error').textContent = ''); }
             if (target === 'profile') loadProfilePage();
+            if (target === 'online') {
+                onlineShowSection('online-idle');
+                const sp = JSON.parse(localStorage.getItem(SERVER_PROFILE_KEY) || '{}');
+                const el = document.getElementById('online-my-elo');
+                if (el) el.textContent = sp.elo ? Math.round(sp.elo) : '—';
+            }
             if (target === 'dashboard') { loadHomeDashboard(); }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
             if (target === 'streak') loadStreakPage();
@@ -2738,7 +2775,7 @@ function replayMatch(ts) {
     updateReviewNav();
 
     // Navigate to play page
-    const _replayNavTarget = gameMode === 'lan2p' ? 'local2p' : 'play';
+    const _replayNavTarget = gameMode === 'lan2p' ? 'local2p' : gameMode === 'online' ? 'online' : 'play';
     navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === _replayNavTarget));
     pages.forEach(p => {
         p.classList.toggle('hidden', p.id !== 'page-play');
@@ -3032,7 +3069,7 @@ let mpCode = null, mpMyPlayer = 0, mpSeq = -1, mpOpponentName = '';
 let mpPollTimer = null, mpWaitTimer = null;
 let gameWinner = null;
 function myPlayer() {
-    if (gameMode === 'lan2p')   return mpMyPlayer;
+    if (gameMode === 'lan2p' || gameMode === 'online') return mpMyPlayer;
     if (gameMode === 'local2p') return currentTurn;
     return humanPlayer;
 }
@@ -3697,6 +3734,7 @@ function executeMove(fromR, fromC, moveObj) {
         updateStatus(gameMode !== 'vsBot' ? `🎉 Player ${player} wins!` : (player === humanPlayer ? '🎉 You win!' : '🤖 Bot wins!'));
         showGameOverModal(player, gameMode !== 'vsBot' ? `Player ${player} reached the backline!` : (player === humanPlayer ? "You defeated the Offline Bot." : "The Offline Bot defeated you."));
         if (gameMode === 'lan2p') { mpSendState(); mpStopAll(); }
+        if (gameMode === 'online') onlineSendGameOver();
         return;
     }
 
@@ -3707,6 +3745,7 @@ function executeMove(fromR, fromC, moveObj) {
         renderBoard(); updateStatus();
         if (gameMode === 'vsBot' && currentTurn === botPlayer && !gameOver) { setTimeout(botAction, 450); }
         if (gameMode === 'lan2p') mpSendState();
+        if (gameMode === 'online') onlineSendState();
         return;
     }
 
@@ -3718,6 +3757,7 @@ function executeMove(fromR, fromC, moveObj) {
     renderBoard(); updateStatus();
     if (gameMode === 'vsBot' && currentTurn === botPlayer && !gameOver) { setTimeout(botAction, 500); }
     if (gameMode === 'lan2p') { mpSendState(); mpStartPoll(); }
+    if (gameMode === 'online') onlineSendState();
 }
 
 // ─── HUMAN CLICK ────────────────────────────────────────────
@@ -4115,6 +4155,7 @@ function resignGame() {
         const other = currentTurn === 1 ? 2 : 1;
         gameWinner = other;
         if (gameMode === 'lan2p') { mpSendState(); mpStopAll(); }
+        if (gameMode === 'online') onlineSendGameOver();
         showGameOverModal(other, `Player ${currentTurn} resigned.`);
         updateStatus(`Player ${other} wins by resignation.`);
     } else {
@@ -4126,6 +4167,7 @@ function resignGame() {
 function closeModalToSetup() {
     mpStopAll();
     mpCode = null; mpMyPlayer = 0; mpSeq = -1; mpOpponentName = ''; gameWinner = null;
+    onlineGameId = null; onlineMyPlayer = 0; onlineOpponentName = '';
     gameMode = 'vsBot';
     initGame();
 }
@@ -4249,6 +4291,113 @@ function mpLoadState(st) {
     } else {
         renderBoard(); updateStatus();
     }
+}
+
+// ── Online multiplayer (WebSocket matchmaking) ────────────────
+let onlineWs          = null;
+let onlineMyPlayer    = 0;
+let onlineGameId      = null;
+let onlineOpponentName = '';
+let onlineOpponentElo  = 0;
+
+function onlineShowSection(id) {
+    ['online-idle','online-searching','online-matched'].forEach(s =>
+        document.getElementById(s).classList.toggle('hidden', s !== id));
+}
+
+function onlineConnect() {
+    const token = getAuthToken();
+    if (!token) { alert('Please sign in first.'); return; }
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws    = new WebSocket(`${proto}://${location.host}/ws/play?token=${token}`);
+    onlineWs    = ws;
+
+    ws.onopen = () => { onlineShowSection('online-searching'); };
+
+    ws.onmessage = e => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'queued') {
+            onlineShowSection('online-searching');
+        } else if (data.type === 'matched') {
+            onlineGameId       = data.game_id;
+            onlineMyPlayer     = data.player;
+            onlineOpponentName = data.opponent;
+            onlineOpponentElo  = data.opponent_elo;
+            document.getElementById('online-opp-name').textContent = data.opponent;
+            document.getElementById('online-opp-elo').textContent  = data.opponent_elo;
+            onlineShowSection('online-matched');
+            setTimeout(onlineLaunchGame, 1200);
+        } else if (data.type === 'move') {
+            mpLoadState(data.state);
+        } else if (data.type === 'opponent_left') {
+            if (!gameOver) {
+                gameOver = true; gameStarted = false;
+                updateStatus('Opponent disconnected.');
+                showGameOverModal(onlineMyPlayer, 'Your opponent left the game.');
+            }
+        } else if (data.type === 'cancelled') {
+            onlineShowSection('online-idle');
+            onlineWs = null;
+        } else if (data.type === 'error') {
+            alert(data.msg);
+            onlineShowSection('online-idle');
+            onlineWs = null;
+        }
+    };
+
+    ws.onclose = () => {
+        if (!gameOver && gameStarted) {
+            updateStatus('Connection lost.');
+        }
+        onlineWs = null;
+    };
+
+    ws.onerror = () => {
+        onlineShowSection('online-idle');
+        onlineWs = null;
+    };
+}
+
+function onlineCancel() {
+    if (onlineWs) {
+        onlineWs.send(JSON.stringify({ type: 'cancel' }));
+    }
+    onlineShowSection('online-idle');
+}
+
+function onlineLaunchGame() {
+    gameMode = 'online';
+    mpMyPlayer = onlineMyPlayer;   // reuse mpMyPlayer so myPlayer() works
+    mpOpponentName = onlineOpponentName;
+    navigateTo('play');
+    startGame();
+}
+
+function onlineSendState() {
+    if (!onlineWs || onlineWs.readyState !== WebSocket.OPEN) return;
+    const state = { boardState, currentTurn, actionsRemaining,
+                    bonusPending, moveCount, gameOver, gameWinner,
+                    senderName: loadProfile().username };
+    onlineWs.send(JSON.stringify({ type: 'move', state }));
+}
+
+function onlineSendGameOver() {
+    if (!onlineWs || onlineWs.readyState !== WebSocket.OPEN) return;
+    const winner = gameWinner || (gameOver ? (onlineMyPlayer === 1 ? 2 : 1) : null);
+    onlineWs.send(JSON.stringify({ type: 'game_over', winner,
+        state: { boardState, currentTurn, actionsRemaining, bonusPending,
+                 moveCount, gameOver, gameWinner, senderName: loadProfile().username } }));
+    // Refresh ELO display after short delay (server updates async)
+    setTimeout(async () => {
+        try {
+            const user = await apiAuthFetch('/me');
+            const el = document.getElementById('online-my-elo');
+            if (el) el.textContent = Math.round(user.elo);
+            const topbarElo = document.getElementById('topbar-elo');
+            if (topbarElo) topbarElo.textContent = Math.round(user.elo);
+        } catch(e) {}
+    }, 2000);
 }
 
 function applyColorPreview() {
