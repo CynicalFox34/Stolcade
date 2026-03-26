@@ -2243,6 +2243,7 @@ function navigateTo(target) {
                 onlineLoadFriendsList();
             }
             if (target === 'engine') {
+                pollEvalGames();
                 if (!trainPollInterval) { pollTrainingLog(); trainPollInterval = setInterval(pollTrainingLog, 3000); }
             } else {
                 if (trainPollInterval) { clearInterval(trainPollInterval); trainPollInterval = null; }
@@ -5484,6 +5485,8 @@ function switchAuthTab(tab) {
 let trainAutoscroll   = true;
 let trainPollInterval = null;
 let lastLogLength     = 0;
+let evalGamesData     = [];
+let selectedEvalGame  = null;
 
 function toggleAutoscroll() {
     trainAutoscroll = !trainAutoscroll;
