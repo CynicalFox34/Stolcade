@@ -5511,7 +5511,13 @@ async function apiAuthFetch(endpoint, method = 'GET', body = null) {
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch('/api/auth' + endpoint, opts);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    if (!res.ok) {
+        // Pydantic returns detail as an array on validation errors — flatten to readable string
+        const detail = Array.isArray(data.detail)
+            ? data.detail.map(e => e.msg || String(e)).join(', ')
+            : (data.detail || 'Request failed');
+        throw new Error(detail);
+    }
     return data;
 }
 
