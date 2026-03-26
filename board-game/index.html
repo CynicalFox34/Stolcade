@@ -2795,7 +2795,7 @@ function matchRowHtml(m, clickable) {
     const label = `${date.getMonth()+1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
     const isRated = !m.isBot;
     const typeTag = m.isBot
-        ? `<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">BOT</span>`
+        ? ''
         : `<span style="font-size:0.68rem;background:rgba(96,165,250,0.12);border:1px solid #60a5fa;border-radius:4px;padding:1px 5px;color:#60a5fa;font-weight:700;">RATED</span>`;
     const resultColor = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
     const eloTag = (isRated && m.eloChange !== 0)
@@ -4704,13 +4704,11 @@ function _renderPPMatches() {
     container.innerHTML = sorted.map(m => {
         const color = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
         const dateStr = m.date ? new Date(m.date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'2-digit'}) : '';
-        let ratedTag;
-        if (m.is_bot) {
-            ratedTag = '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">BOT</span>';
-        } else if (m.rated) {
-            ratedTag = '<span style="font-size:0.68rem;background:rgba(96,165,250,0.12);border:1px solid #60a5fa;border-radius:4px;padding:1px 5px;color:#60a5fa;font-weight:700;">RATED</span>';
-        } else {
-            ratedTag = '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">UNRATED</span>';
+        let ratedTag = '';
+        if (!m.is_bot) {
+            ratedTag = m.rated
+                ? '<span style="font-size:0.68rem;background:rgba(96,165,250,0.12);border:1px solid #60a5fa;border-radius:4px;padding:1px 5px;color:#60a5fa;font-weight:700;">RATED</span>'
+                : '<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">UNRATED</span>';
         }
         let oppHtml;
         if (m.is_bot) {
