@@ -1579,7 +1579,7 @@
 
             <!-- ── Board area ── -->
             <div class="board-area">
-                <div class="board-topbar" id="online-board-topbar" style="display:flex;">
+                <div class="board-topbar" id="online-board-topbar" style="display:none;">
                     <div class="turn-indicator" id="online-board-status">
                         <div class="turn-dot" style="background:var(--text-muted);"></div>
                         <span style="color:var(--text-muted);">Select a game type and find a match</span>
@@ -1668,7 +1668,7 @@
             <!-- Board area -->
             <div class="board-area">
                 <div class="board-topbar hidden" id="board-topbar">
-                    <div class="turn-indicator">
+                    <div class="turn-indicator" id="play-turn-indicator">
                         <div class="turn-dot"></div>
                         Ready to play! - <span style="font-weight:400;color:var(--text-muted);">Click New Game</span>
                     </div>
@@ -4115,7 +4115,7 @@ function botAction() {
 
 // ─── STATUS ──────────────────────────────────────────────────
 function updateStatus(msg) {
-    const ti = document.querySelector('.turn-indicator');
+    const ti = document.getElementById('play-turn-indicator');
     const mi = document.querySelector('.move-count');
     if (mi) mi.textContent = `Move ${moveCount}`;
     if (!ti) return;
