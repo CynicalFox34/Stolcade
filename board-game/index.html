@@ -3416,9 +3416,19 @@ function initGame() {
         youCard.classList.add('is-orange'); youCard.classList.remove('is-gray');
         botCard.classList.add('is-gray'); botCard.classList.remove('is-orange');
     }
-    document.querySelector('.player-card.you .p-av').textContent = humanPlayer === 1 ? 'P1' : 'P2';
-    // Repopulate SVG for bot profile since textContent overwrites everything if re-used
-    document.querySelector('.player-card.bot .p-av').innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="bot-svg" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" /><circle cx="15" cy="14" r="1.5" /><line x1="9" y1="18" x2="15" y2="18"/></svg>`;
+    const _youAv = document.querySelector('.player-card.you .p-av');
+    const _p = getProfile();
+    if (_p.avatar) {
+        _youAv.innerHTML = `<img src="${_p.avatar}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+        _youAv.textContent = _p.username ? _p.username[0].toUpperCase() : (humanPlayer === 1 ? 'P1' : 'P2');
+    }
+    const _botAv = document.querySelector('.player-card.bot .p-av');
+    if (gameMode === 'online') {
+        _botAv.textContent = mpOpponentName ? mpOpponentName[0].toUpperCase() : '?';
+    } else {
+        _botAv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="bot-svg" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" /><circle cx="15" cy="14" r="1.5" /><line x1="9" y1="18" x2="15" y2="18"/></svg>`;
+    }
     
     document.querySelector('.player-card.you h4').textContent = `You (Player ${humanPlayer})`;
     document.querySelector('.player-card.bot h4').textContent = gameMode === 'online'
