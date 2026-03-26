@@ -2704,32 +2704,37 @@ function recordMatch({ result, isBot, opponent, moves, endDesc }) {
     }
 }
 
-function updateOverviewStats() {
-    const matches    = getMatches();
-    const ranked     = matches.filter(m => !m.isBot);
-    const wins       = ranked.filter(m => m.result === 'win').length;
-    const losses     = ranked.filter(m => m.result === 'loss').length;
-    const total      = ranked.length;
-    const winRate    = total > 0 ? Math.round((wins / total) * 100) : 0;
-    const profile    = loadProfile();
+let _dashServerMatches = [];
 
+async function updateOverviewStats() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    // Profile overview cards
-    set('pstat-elo',     profile.elo);
-    set('pstat-matches', ranked.length);
-    set('pstat-winrate', winRate + '%');
-    set('pstat-wins',    wins);
-    set('pstat-losses',  losses);
-    // Dashboard cards
-    set('dstat-elo',     profile.elo);
-    set('dstat-matches', ranked.length);
-    set('dstat-winrate', winRate + '%');
-    set('dstat-wins',    wins);
-    set('dstat-losses',  losses);
-    // Stats welcome line
+    const profile = loadProfile();
     const welcome = document.getElementById('stats-welcome');
     if (welcome) welcome.textContent = `Welcome back, ${profile.username}. Here's your performance overview.`;
-    // Recent matches list
+
+    // Fetch rated stats + online game history from server
+    try {
+        const sp = JSON.parse(sessionStorage.getItem(SERVER_PROFILE_KEY) || 'null');
+        if (sp && sp.username) {
+            const data = await apiFetch('/users/' + encodeURIComponent(sp.username));
+            const total = data.wins + data.losses + data.draws;
+            const wr = total > 0 ? Math.round(data.wins / total * 100) : 0;
+            set('dstat-elo',     data.elo);
+            set('dstat-wins',    data.wins);
+            set('dstat-losses',  data.losses);
+            set('dstat-matches', total);
+            set('dstat-winrate', wr + '%');
+            set('pstat-elo',     data.elo);
+            set('pstat-wins',    data.wins);
+            set('pstat-losses',  data.losses);
+            set('pstat-matches', total);
+            set('pstat-winrate', wr + '%');
+            _dashServerMatches = (data.recent_matches || []).filter(m => !m.is_bot);
+        }
+    } catch(e) {
+        _dashServerMatches = [];
+    }
+
     renderDashRecentMatches();
     updateStreakDisplay();
 }
@@ -2791,30 +2796,36 @@ function setDashSort(order) {
 }
 
 function matchRowHtml(m, clickable) {
-    const date  = new Date(m.ts);
+    const ts    = m._ts || m.ts || 0;
+    const date  = new Date(ts);
     const label = `${date.getMonth()+1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
-    const isRated = !m.isBot;
+    const isRated = m._server ? m.rated : !m.isBot;
     const typeTag = m.isBot
         ? ''
-        : `<span style="font-size:0.68rem;background:rgba(245,160,90,0.12);border:1px solid #f5a05a;border-radius:4px;padding:1px 5px;color:#f5a05a;font-weight:700;">RATED</span>`;
+        : (isRated
+            ? `<span style="font-size:0.68rem;background:rgba(245,160,90,0.12);border:1px solid #f5a05a;border-radius:4px;padding:1px 5px;color:#f5a05a;font-weight:700;">RATED</span>`
+            : `<span style="font-size:0.68rem;background:var(--bg-primary);border:1px solid var(--border-inner);border-radius:4px;padding:1px 5px;color:var(--text-muted);font-weight:700;">UNRATED</span>`);
     const resultColor = m.result === 'win' ? '#6bb577' : m.result === 'loss' ? '#c26b6b' : 'var(--text-muted)';
-    const eloTag = (isRated && m.eloChange !== 0)
-        ? `<span style="color:${m.eloChange > 0 ? '#6bb577' : '#c26b6b'}; font-size:0.78rem; font-weight:700;">${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>` : '';
-    const hasReplay = getReplay(m.ts) !== null;
+    const eloChange = m.eloChange ?? m.elo_change ?? 0;
+    const eloTag = (isRated && eloChange !== 0)
+        ? `<span style="color:${eloChange > 0 ? '#6bb577' : '#c26b6b'}; font-size:0.78rem; font-weight:700;">${eloChange > 0 ? '+' : ''}${eloChange}</span>` : '';
+    const hasReplay = !m._server && getReplay(ts) !== null;
     const replayBtn = (clickable && hasReplay)
         ? `<span style="font-size:0.75rem; color:var(--accent); font-weight:700;">▶ Watch</span>` : '';
-    const onclick = (clickable && hasReplay) ? `onclick="replayMatch(${m.ts})"` : '';
+    const onclick = (clickable && hasReplay) ? `onclick="replayMatch(${ts})"` : '';
     const rowStyle = (clickable && hasReplay) ? '' : 'cursor:default;';
+    const eloSuffix = m.opponent_elo ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${m.opponent_elo})</span>` : '';
     const oppDisplay = (m.isBot || !m.opponent || m.opponent === 'Bot')
         ? `<span style="color:var(--text-secondary);">${m.opponent || 'Bot'}</span>`
-        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>`;
+        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
+    const movesTag = m.moves != null ? `<span style="color:var(--text-muted); font-size:0.78rem;">${m.moves} moves</span>` : '';
     return `<div class="match-row" ${onclick} style="${rowStyle}">
         <span style="color:${resultColor}; font-weight:700; text-transform:uppercase;
             font-size:0.8rem; min-width:48px;">${m.result}</span>
         <span style="flex:1;display:flex;align-items:center;gap:0.4rem;">vs ${oppDisplay} ${typeTag}</span>
         ${eloTag}
         <span style="color:var(--text-muted); font-size:0.78rem;">${label}</span>
-        <span style="color:var(--text-muted); font-size:0.78rem;">${m.moves || '?'} moves</span>
+        ${movesTag}
         ${replayBtn}
     </div>`;
 }
@@ -2822,14 +2833,32 @@ function matchRowHtml(m, clickable) {
 function renderDashRecentMatches() {
     const container = document.getElementById('dash-recent-matches');
     if (!container) return;
-    const recent = getMatches().slice()
-        .sort((a, b) => dashSortOrder === 'recent' ? b.ts - a.ts : a.ts - b.ts)
-        .slice(0, 10);
-    if (recent.length === 0) {
+
+    // Local bot games
+    const localMatches = getMatches().map(m => ({ ...m, _ts: m.ts, _local: true }));
+
+    // Server online games converted to a compatible format
+    const serverMatches = (_dashServerMatches || []).map(m => ({
+        _ts:       m.date ? new Date(m.date).getTime() : 0,
+        result:    m.result,
+        isBot:     false,
+        opponent:  m.opponent,
+        opponent_elo: m.opponent_elo,
+        eloChange: m.elo_change,
+        rated:     m.rated,
+        moves:     null,
+        _server:   true,
+    }));
+
+    const all = [...localMatches, ...serverMatches]
+        .sort((a, b) => dashSortOrder === 'recent' ? b._ts - a._ts : a._ts - b._ts)
+        .slice(0, 20);
+
+    if (all.length === 0) {
         container.innerHTML = `<div class="empty-state" style="border-radius:0 0 14px 14px;">No matches played yet — head to <strong>Play Game</strong> to get started!</div>`;
         return;
     }
-    container.innerHTML = recent.map(m => matchRowHtml(m, true)).join('');
+    container.innerHTML = all.map(m => matchRowHtml(m, !m._server)).join('');
 }
 
 // ─── REPLAY ──────────────────────────────────────────────────
@@ -4969,14 +4998,16 @@ function showGameOverModal(winner, desc) {
     // Ensure modal buttons are in normal game state
     document.getElementById('modal-btn-primary').textContent    = 'New Game';
     document.getElementById('modal-btn-secondary').style.display = 'none';
-    // Record match in local history
-    recordMatch({
-        result:   gameMode === 'online' ? (winner === onlineMyPlayer ? 'win' : 'loss') : (humanWon ? 'win' : 'loss'),
-        isBot:    gameMode !== 'online',
-        opponent: gameMode === 'online' ? mpOpponentName : 'Offline Bot',
-        moves:    moveCount,
-        endDesc:  desc
-    });
+    // Only record bot games to localStorage — online games live on the server
+    if (gameMode !== 'online') {
+        recordMatch({
+            result:   humanWon ? 'win' : 'loss',
+            isBot:    true,
+            opponent: 'Offline Bot',
+            moves:    moveCount,
+            endDesc:  desc
+        });
+    }
 }
 
 // ─── BALANCE LAB ─────────────────────────────────────────────
