@@ -1049,7 +1049,6 @@
         .auth-pw-wrap input { padding-right: 2.6rem; }
         .auth-pw-toggle { position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; line-height: 1; font-size: 1rem; }
         .auth-pw-toggle:hover { color: var(--text-primary); }
-        #engine-nav-link { display: none; }
         .auth-submit { width: 100%; margin-top: 1.4rem; padding: 0.75rem; font-size: 1rem; font-weight: 800; }
         .auth-error { font-size: 0.85rem; color: #c26b6b; margin-top: 0.8rem; text-align: center; min-height: 1.2em; }
         .auth-switch { text-align: center; font-size: 0.83rem; color: var(--text-muted); margin-top: 1rem; }
@@ -1182,11 +1181,12 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span> Club
         </a>
-        <a href="#" data-page="engine" id="engine-nav-link">
+        <a href="#" data-page="engine" id="engine-nav-link" style="display:none">
             <span class="icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/></svg>
             </span> Engine &amp; Data
         </a>
+        <script>if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){document.getElementById('engine-nav-link').style.cssText='display:flex !important';}</script>
     </div>
 
     <div class="sidebar-footer" style="justify-content:center; border:none; background:none; padding:0.5rem;">
@@ -2267,11 +2267,11 @@ navLinks.forEach(link => {
 const PROFILE_KEY = 'stolcade_profile';
 
 function loadProfile() {
-    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+    const saved = JSON.parse(sessionStorage.getItem(PROFILE_KEY) || '{}');
     // Stamp createdAt on first load and persist it immediately
     if (!saved.createdAt) {
         saved.createdAt = Date.now();
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(saved));
+        sessionStorage.setItem(PROFILE_KEY, JSON.stringify(saved));
     }
     return { username: saved.username || 'Player One', avatar: saved.avatar || null,
              email: saved.email || '', phone: saved.phone || '', elo: saved.elo || 1200,
@@ -2372,7 +2372,7 @@ async function saveProfileInfo() {
         setTimeout(() => { msg.style.opacity = '0'; msg.style.color = 'var(--accent)'; }, 3000);
         return;
     }
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, username }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, username }));
     applyProfile();
     msg.textContent = 'Saved!'; msg.style.color = 'var(--accent)'; msg.style.opacity = '1';
     setTimeout(() => { msg.style.opacity = '0'; }, 2000);
@@ -2394,7 +2394,7 @@ async function saveContactInfo() {
             return;
         }
     }
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, email, phone }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, email, phone }));
     msg.textContent = 'Saved!'; msg.style.color = 'var(--accent)'; msg.style.opacity = '1';
     setTimeout(() => { msg.style.opacity = '0'; }, 2000);
 }
@@ -2416,7 +2416,7 @@ function savePassword() {
 
 function removeAvatar() {
     const existing = loadProfile();
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, avatar: null }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, avatar: null }));
     applyProfile();
     const av = document.getElementById('profile-pic-av');
     const initial = existing.username.trim().charAt(0).toUpperCase() || 'P';
@@ -2425,7 +2425,7 @@ function removeAvatar() {
 
 function selectBorder(border) {
     const existing = loadProfile();
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, border }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, border }));
     document.querySelectorAll('.border-swatch').forEach(s => s.classList.remove('active-swatch'));
     const el = document.getElementById('bswatch-' + border);
     if (el) el.classList.add('active-swatch');
@@ -2436,7 +2436,7 @@ function selectMoveMethod(method) {
         document.getElementById('method-' + m).classList.toggle('selected', m === method);
     });
     const existing = loadProfile();
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, moveMethod: method }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, moveMethod: method }));
 }
 
 function togglePref(key) {
@@ -2445,7 +2445,7 @@ function togglePref(key) {
     const existing = loadProfile();
     const prefs = existing.prefs || {};
     prefs[key] = isOn;
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, prefs }));
+    sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, prefs }));
 }
 
 function loadBoardPrefs() {
@@ -2462,7 +2462,7 @@ function loadBoardPrefs() {
 function signOut() {
     if (confirm('Sign out of Stolcade Arena?')) {
         clearAuthToken();
-        localStorage.removeItem(PROFILE_KEY);
+        sessionStorage.removeItem(PROFILE_KEY);
         location.reload();
     }
 }
@@ -2473,7 +2473,7 @@ function handleAvatarUpload(e) {
     const reader = new FileReader();
     reader.onload = ev => {
         const existing = loadProfile();
-        localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, avatar: ev.target.result }));
+        sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, avatar: ev.target.result }));
         applyProfile();
     };
     reader.readAsDataURL(file);
@@ -2604,7 +2604,7 @@ function recordMatch({ result, isBot, opponent, moves, endDesc }) {
         const score    = result === 'win' ? 1 : result === 'loss' ? 0 : 0.5;
         eloChange = Math.round(K * (score - expected));
         newElo    = Math.max(100, profile.elo + eloChange);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...profile, elo: newElo }));
+        sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...profile, elo: newElo }));
         eloHistory.push({ ts: now, elo: newElo });
         localStorage.setItem(ELO_KEY, JSON.stringify(eloHistory));
     }
@@ -5795,11 +5795,6 @@ async function runBalanceLab() {
     results.classList.remove('hidden');btn.disabled=false;btn.textContent='Run Test';
 }
 
-// Show Engine & Data nav only on localhost
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    const engineLink = document.getElementById('engine-nav-link');
-    if (engineLink) engineLink.style.setProperty('display', 'flex', 'important');
-}
 
 function togglePw(fieldId, btn) {
     const inp = document.getElementById(fieldId);
@@ -5922,9 +5917,9 @@ async function initAuth() {
                 elo: user.elo, wins: user.wins, losses: user.losses, draws: user.draws
             }));
             // Merge username/email into local profile if different
-            const local = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+            const local = JSON.parse(sessionStorage.getItem(PROFILE_KEY) || '{}');
             if (local.username !== user.username || local.email !== user.email) {
-                localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...local, username: user.username, email: user.email }));
+                sessionStorage.setItem(PROFILE_KEY, JSON.stringify({ ...local, username: user.username, email: user.email }));
             }
             document.getElementById('auth-modal').classList.add('hidden');
             applyProfile();
