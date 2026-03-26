@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, func, or_
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, func, or_, UniqueConstraint
 from .database import Base
 
 class User(Base):
@@ -40,3 +40,26 @@ class Match(Base):
     is_bot       = Column(Boolean, default=False)
     move_count   = Column(Integer, default=0)
     created_at   = Column(DateTime, server_default=func.now())
+
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+    __table_args__ = (UniqueConstraint("requester_id", "addressee_id"),)
+
+    id           = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    addressee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status       = Column(String, default="pending")  # pending / accepted / rejected
+    created_at   = Column(DateTime, server_default=func.now())
+
+
+class GameChallenge(Base):
+    __tablename__ = "game_challenges"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    challenger_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    challenged_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    rated         = Column(Boolean, default=True)
+    status        = Column(String, default="pending")  # pending / accepted / declined / cancelled
+    game_token    = Column(String, unique=True, index=True, nullable=False)
+    created_at    = Column(DateTime, server_default=func.now())

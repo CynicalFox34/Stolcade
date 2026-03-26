@@ -17,7 +17,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from jose import jwt
 
 from ..database import SessionLocal
-from ..models import User, Match
+from ..models import User, Match, GameChallenge
 from ..auth import SECRET_KEY, ALGORITHM
 from game import GameState, get_valid_moves   # noqa: E402
 
@@ -25,6 +25,7 @@ router = APIRouter()
 
 matchmaking_queue: list = []
 active_games: dict      = {}
+challenge_games: dict   = {}   # game_token → {user, ws, entry}
 _counter                = 0
 
 
@@ -70,17 +71,13 @@ async def _update_elo(gid: str, winner: int):
     game = active_games.pop(gid, None)
     if not game:
         return
+    is_rated = game.get("rated", True)
     db = SessionLocal()
     try:
         p1 = db.query(User).filter(User.id == game["p1"]["id"]).first()
         p2 = db.query(User).filter(User.id == game["p2"]["id"]).first()
         if not (p1 and p2):
             return
-        K    = 32
-        exp1 = 1 / (1 + 10 ** ((p2.elo - p1.elo) / 400))
-
-        p1_elo_before = round(p1.elo)
-        p2_elo_before = round(p2.elo)
 
         if winner == 1:
             s1, s2 = 1.0, 0.0; p1.wins   += 1; p2.losses += 1; r1, r2 = 'win',  'loss'
@@ -89,17 +86,27 @@ async def _update_elo(gid: str, winner: int):
         else:
             s1, s2 = 0.5, 0.5; p1.draws  += 1; p2.draws  += 1; r1, r2 = 'draw', 'draw'
 
-        p1.elo = max(100, round(p1.elo + K * (s1 - exp1)))
-        p2.elo = max(100, round(p2.elo + K * (s2 - (1 - exp1))))
+        p1_elo_before = round(p1.elo)
+        p2_elo_before = round(p2.elo)
+        p1_elo_after  = p1_elo_before
+        p2_elo_after  = p2_elo_before
+
+        if is_rated:
+            K    = 32
+            exp1 = 1 / (1 + 10 ** ((p2.elo - p1.elo) / 400))
+            p1.elo = max(100, round(p1.elo + K * (s1 - exp1)))
+            p2.elo = max(100, round(p2.elo + K * (s2 - (1 - exp1))))
+            p1_elo_after = round(p1.elo)
+            p2_elo_after = round(p2.elo)
 
         db.add(Match(
             player1_id    = p1.id,
             player2_id    = p2.id,
             result_p1     = r1,
             elo_p1_before = p1_elo_before,
-            elo_p1_after  = round(p1.elo),
+            elo_p1_after  = p1_elo_after,
             elo_p2_before = p2_elo_before,
-            elo_p2_after  = round(p2.elo),
+            elo_p2_after  = p2_elo_after,
             is_bot        = False,
         ))
         db.commit()
@@ -196,7 +203,9 @@ async def _relay(gid: str, my_ws: WebSocket, player_num: int):
 # ── Matchmaking endpoint ───────────────────────────────────────
 
 @router.websocket("/ws/play")
-async def ws_play(websocket: WebSocket, token: str = Query(...)):
+async def ws_play(websocket: WebSocket, token: str = Query(...),
+                  challenge_token: str = Query(None),
+                  rated: str = Query("true")):
     await websocket.accept()
 
     user = await _get_user(token)
@@ -206,6 +215,82 @@ async def ws_play(websocket: WebSocket, token: str = Query(...)):
         return
 
     global _counter, matchmaking_queue
+
+    # ── Challenge (direct invite) path ──────────────────────────────
+    if challenge_token:
+        db = SessionLocal()
+        try:
+            ch = db.query(GameChallenge).filter(
+                GameChallenge.game_token == challenge_token,
+                GameChallenge.status.in_(["pending", "accepted"])
+            ).first()
+            if not ch or user["id"] not in (ch.challenger_id, ch.challenged_id):
+                await websocket.send_json({"type": "error", "msg": "Challenge not found"})
+                await websocket.close()
+                return
+            is_rated = ch.rated
+        finally:
+            db.close()
+
+        if challenge_token in challenge_games:
+            # Partner is already waiting — pair immediately
+            partner = challenge_games.pop(challenge_token)
+            _counter += 1
+            gid = f"g{_counter}"
+
+            active_games[gid] = {
+                "p1":   {**partner["user"], "ws": partner["ws"]},
+                "p2":   {**user, "ws": websocket},
+                "gs":   GameState(),
+                "lock": asyncio.Lock(),
+                "rated": is_rated,
+            }
+            partner["entry"]["game_id"] = gid
+            initial_state = _gs_to_state(active_games[gid]["gs"])
+
+            await partner["ws"].send_json({
+                "type": "matched", "game_id": gid, "player": 1,
+                "opponent": user["username"], "opponent_elo": user["elo"],
+                "rated": is_rated, "state": initial_state,
+            })
+            await websocket.send_json({
+                "type": "matched", "game_id": gid, "player": 2,
+                "opponent": partner["user"]["username"], "opponent_elo": partner["user"]["elo"],
+                "rated": is_rated, "state": initial_state,
+            })
+            await _relay(gid, websocket, 2)
+
+        else:
+            # Wait for partner
+            entry = {"game_id": None}
+            challenge_games[challenge_token] = {"user": user, "ws": websocket, "entry": entry}
+            await websocket.send_json({"type": "waiting_for_opponent"})
+
+            try:
+                while entry["game_id"] is None:
+                    try:
+                        raw  = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+                        data = json.loads(raw)
+                        if data.get("type") == "cancel":
+                            challenge_games.pop(challenge_token, None)
+                            await websocket.send_json({"type": "cancelled"})
+                            return
+                    except asyncio.TimeoutError:
+                        pass
+            except WebSocketDisconnect:
+                challenge_games.pop(challenge_token, None)
+                return
+
+            gid  = entry["game_id"]
+            game = active_games.get(gid)
+            if not game:
+                return
+            await _relay(gid, websocket, 1)
+
+        return  # challenge path handled
+
+    # ── Regular matchmaking path ────────────────────────────────────
+    is_rated = rated.lower() != "false"
     matchmaking_queue = [q for q in matchmaking_queue if q["id"] != user["id"]]
 
     if matchmaking_queue:
@@ -219,6 +304,7 @@ async def ws_play(websocket: WebSocket, token: str = Query(...)):
             "p2":   {**user, "ws": websocket},
             "gs":   GameState(),
             "lock": asyncio.Lock(),
+            "rated": is_rated,
         }
         opp["game_id"] = gid
 
@@ -227,12 +313,12 @@ async def ws_play(websocket: WebSocket, token: str = Query(...)):
         await opp["ws"].send_json({
             "type": "matched", "game_id": gid, "player": 1,
             "opponent": user["username"], "opponent_elo": user["elo"],
-            "state": initial_state,
+            "rated": is_rated, "state": initial_state,
         })
         await websocket.send_json({
             "type": "matched", "game_id": gid, "player": 2,
             "opponent": opp["username"], "opponent_elo": opp["elo"],
-            "state": initial_state,
+            "rated": is_rated, "state": initial_state,
         })
 
         await _relay(gid, websocket, 2)

@@ -766,7 +766,7 @@
             justify-content: center;
         }
 
-        #game-board {
+        #game-board, #online-preview-board {
             display: grid;
             grid-template-columns: repeat(11, 38px);
             grid-template-rows: repeat(20, 38px);
@@ -780,7 +780,7 @@
         }
 
         /* Maroon center divider — skips blocked hole columns */
-        #game-board::after {
+        #game-board::after, #online-preview-board::after {
             content: '';
             position: absolute;
             left: 3px; right: 3px;
@@ -816,6 +816,34 @@
             filter: grayscale(40%) opacity(0.6);
             pointer-events: none;
         }
+
+        /* Online page board overlay */
+        .board-status-overlay {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.45);
+            border-radius: 6px;
+            z-index: 20;
+            gap: 0.7rem;
+            pointer-events: none;
+        }
+        .board-status-overlay .bso-text {
+            font-size: 1.1rem; font-weight: 800; color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        }
+        .board-status-overlay .bso-sub {
+            font-size: 0.85rem; color: rgba(255,255,255,0.7);
+        }
+
+        /* Online friends sidebar list */
+        .online-friends-scroll {
+            max-height: 160px;
+            overflow-y: auto;
+            margin-top: 0.4rem;
+        }
+        .online-friends-scroll::-webkit-scrollbar { width: 4px; }
+        .online-friends-scroll::-webkit-scrollbar-thumb { background: var(--border-inner); border-radius: 2px; }
         
         #game-board.inverted { transform: rotate(180deg); }
         #game-board.inverted .cell { transform: rotate(180deg); }
@@ -973,6 +1001,10 @@
         @keyframes pulse {
             0%, 100% { opacity: 0.3; transform: scale(0.8); }
             50%       { opacity: 1;   transform: scale(1.2); }
+        }
+        @keyframes slideUp {
+            from { opacity:0; transform:translateY(12px); }
+            to   { opacity:1; transform:translateY(0); }
         }
 
         /* ── Auth Modal ── */
@@ -1249,13 +1281,24 @@
         <!-- Friends, Achievements, Openings -->
         <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:flex-start;">
 
-            <div style="flex:1; min-width:200px; background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:16px; padding:1.4rem; opacity:0.6; position:relative;">
-                <div style="position:absolute; top:0.9rem; right:0.9rem; background:var(--bg-tertiary); border:1px solid var(--border-inner); border-radius:6px; padding:0.2rem 0.55rem; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Coming Soon</div>
-                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.8rem;">
+            <div id="friends-card" style="flex:1; min-width:220px; background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:16px; padding:1.4rem; position:relative;">
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.9rem;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <div style="font-size:1rem; font-weight:800; color:var(--text-primary);">Friends</div>
+                    <div style="font-size:1rem; font-weight:800; color:var(--text-primary); flex:1;">Friends</div>
+                    <button id="friends-add-btn" onclick="friendsToggleAdd()" style="background:none;border:1px solid var(--border-inner);border-radius:7px;padding:0.2rem 0.55rem;font-size:0.75rem;font-weight:700;color:var(--accent);cursor:pointer;">+ Add</button>
                 </div>
-                <div style="font-size:0.82rem; color:var(--text-muted);">No friends added yet.</div>
+                <!-- Add friend input -->
+                <div id="friends-add-row" style="display:none; margin-bottom:0.75rem;">
+                    <div style="display:flex;gap:0.4rem;">
+                        <input id="friends-add-input" type="text" placeholder="Username…" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:8px;padding:0.4rem 0.65rem;color:var(--text-primary);font-size:0.82rem;outline:none;" onkeydown="if(event.key==='Enter')friendsSendRequest()" />
+                        <button onclick="friendsSendRequest()" style="background:var(--accent);border:none;border-radius:8px;padding:0.4rem 0.75rem;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;">Send</button>
+                    </div>
+                    <div id="friends-add-msg" style="font-size:0.78rem;margin-top:0.35rem;color:var(--text-muted);"></div>
+                </div>
+                <!-- Pending requests -->
+                <div id="friends-requests-list"></div>
+                <!-- Friends list -->
+                <div id="friends-list"><div style="font-size:0.82rem;color:var(--text-muted);">Loading…</div></div>
             </div>
 
             <div style="flex:1; min-width:200px; background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:16px; padding:1.4rem; opacity:0.6; position:relative;">
@@ -1480,41 +1523,82 @@
 
     <!-- ─── ONLINE MATCHMAKING PAGE ─── -->
     <div id="page-online" class="page hidden fade-in">
-        <div style="display:flex; align-items:center; justify-content:center; height:100%; padding:2rem;">
-            <div style="background:var(--bg-secondary); border:1px solid var(--border-inner); border-radius:20px; padding:3rem 3.5rem; max-width:460px; width:100%; box-shadow:var(--shadow-md); text-align:center;">
+        <div class="play-layout">
 
-                <!-- Idle: find a match -->
-                <div id="online-idle">
-                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">🌐</div>
-                    <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:0.5rem;">Play Online</h2>
-                    <p style="color:var(--text-secondary); font-size:0.93rem; margin-bottom:0.5rem; line-height:1.5;">Compete against players worldwide and earn ELO.</p>
-                    <div style="font-size:0.88rem; color:var(--accent); font-weight:700; margin-bottom:2rem;">Your ELO: <span id="online-my-elo">—</span></div>
-                    <button class="btn btn-primary" style="width:100%; padding:0.9rem; font-size:1rem;" onclick="onlineConnect()">Find Match</button>
+            <!-- ── Left sidebar ── -->
+            <div class="play-sidebar">
+
+                <!-- Your card -->
+                <div class="player-card" id="online-card-you" style="opacity:0.55;">
+                    <div class="p-av" id="online-av-you" style="background:var(--bg-tertiary);color:var(--text-muted);font-size:1rem;">?</div>
+                    <h4 id="online-name-you">You</h4>
+                    <div class="p-elo">ELO <span id="online-my-elo">—</span></div>
                 </div>
 
-                <!-- Searching -->
-                <div id="online-searching" class="hidden">
-                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">⏳</div>
-                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Finding opponent…</h2>
-                    <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:1.8rem;">Looking for a player near your skill level.</p>
-                    <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:2rem;">
-                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite;"></div>
-                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.2s infinite;"></div>
-                        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.4s infinite;"></div>
+                <!-- Opponent card -->
+                <div class="player-card" id="online-card-opp" style="opacity:0.4;">
+                    <div class="p-av" id="online-av-opp" style="background:var(--bg-tertiary);color:var(--text-muted);font-size:1.1rem;">?</div>
+                    <h4 id="online-opp-name">Opponent</h4>
+                    <div class="p-elo" id="online-opp-elo-label" style="color:var(--text-muted);">Waiting for match…</div>
+                </div>
+
+                <!-- ── Idle controls ── -->
+                <div class="game-controls" id="online-controls-idle">
+                    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.6rem;">Game Type</div>
+                    <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+                        <button id="matchbtn-rated" onclick="setMatchRated(true)" style="flex:1;padding:0.5rem;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer;">Rated</button>
+                        <button id="matchbtn-unrated" onclick="setMatchRated(false)" style="flex:1;padding:0.5rem;border-radius:8px;border:2px solid var(--border-inner);background:transparent;color:var(--text-secondary);font-weight:700;font-size:0.82rem;cursor:pointer;">Unrated</button>
+                    </div>
+                    <div id="online-rated-elo-hint" style="font-size:0.78rem;color:var(--accent);font-weight:600;margin-bottom:1rem;text-align:center;">Your ELO: <span id="online-my-elo2">—</span></div>
+                    <button class="btn btn-primary" style="width:100%;margin-bottom:0.6rem;" onclick="onlineConnect()">Find Match</button>
+
+                    <!-- Friends section -->
+                    <div style="border-top:1px solid var(--border-inner);margin-top:0.6rem;padding-top:0.8rem;">
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.5rem;">Invite a Friend</div>
+                        <div id="online-friends-list" class="online-friends-scroll">
+                            <div style="color:var(--text-muted);font-size:0.82rem;">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Searching controls ── -->
+                <div class="game-controls hidden" id="online-controls-searching">
+                    <div style="text-align:center;margin-bottom:1rem;">
+                        <div style="font-size:0.88rem;font-weight:700;color:var(--text-primary);margin-bottom:0.8rem;" id="online-searching-label">Finding opponent…</div>
+                        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:1.2rem;">
+                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite;"></div>
+                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.2s infinite;"></div>
+                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out 0.4s infinite;"></div>
+                        </div>
                     </div>
                     <button class="btn btn-ghost" style="width:100%;" onclick="onlineCancel()">Cancel</button>
                 </div>
 
-                <!-- Matched -->
-                <div id="online-matched" class="hidden">
-                    <div style="font-size:2.4rem; margin-bottom:0.6rem;">⚔️</div>
-                    <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.4rem;">Opponent Found!</h2>
-                    <div style="font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:0.3rem;" id="online-opp-name">—</div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">ELO <span id="online-opp-elo">—</span></div>
-                    <div style="color:var(--text-muted); font-size:0.88rem;">Starting game…</div>
-                </div>
-
             </div>
+
+            <!-- ── Board area ── -->
+            <div class="board-area">
+                <div class="board-topbar" id="online-board-topbar" style="display:flex;">
+                    <div class="turn-indicator" id="online-board-status">
+                        <div class="turn-dot" style="background:var(--text-muted);"></div>
+                        <span style="color:var(--text-muted);">Select a game type and find a match</span>
+                    </div>
+                </div>
+                <div class="board-wrap" style="position:relative;">
+                    <div id="online-preview-board" class="dimmed"></div>
+                    <!-- Status overlay shown while searching / matched -->
+                    <div class="board-status-overlay hidden" id="online-board-overlay">
+                        <div class="bso-text" id="online-overlay-text">Searching…</div>
+                        <div class="bso-sub" id="online-overlay-sub"></div>
+                        <div id="online-overlay-pulse" style="display:flex;gap:6px;margin-top:0.4rem;">
+                            <div style="width:9px;height:9px;border-radius:50%;background:#fff;animation:pulse 1s ease-in-out infinite;"></div>
+                            <div style="width:9px;height:9px;border-radius:50%;background:#fff;animation:pulse 1s ease-in-out 0.2s infinite;"></div>
+                            <div style="width:9px;height:9px;border-radius:50%;background:#fff;animation:pulse 1s ease-in-out 0.4s infinite;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1840,6 +1924,33 @@
         </div><!-- end page-content-wrap -->
     </div>
 
+    <!-- ── CHALLENGE TOAST ── -->
+    <div id="challenge-toast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:var(--bg-secondary);border:1px solid var(--accent);border-radius:14px;padding:1rem 1.2rem;box-shadow:0 4px 24px rgba(0,0,0,0.4);max-width:310px;animation:slideUp 0.3s ease;">
+        <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--accent);margin-bottom:0.35rem;">Challenge Received!</div>
+        <div id="challenge-toast-text" style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:0.75rem;"></div>
+        <div style="display:flex;gap:0.5rem;">
+            <button id="challenge-toast-accept" onclick="challengeAcceptFromToast()" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:0.5rem;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;">Accept</button>
+            <button id="challenge-toast-decline" onclick="challengeDeclineFromToast()" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:8px;padding:0.5rem;color:var(--text-secondary);font-size:0.85rem;font-weight:700;cursor:pointer;">Decline</button>
+        </div>
+    </div>
+
+    <!-- ── CHALLENGE MODAL ── -->
+    <div id="challenge-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-inner);border-radius:20px;padding:2rem;max-width:340px;width:90%;text-align:center;box-shadow:var(--shadow-md);">
+            <div style="font-size:1.5rem;margin-bottom:0.5rem;">⚔️</div>
+            <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:0.3rem;">Challenge <span id="challenge-modal-name"></span></h3>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.4rem;">Pick your game type then send the invite.</p>
+            <div style="display:flex;gap:0.6rem;margin-bottom:1.4rem;">
+                <button id="chal-btn-rated" onclick="setChallengeType(true)" style="flex:1;padding:0.7rem;border-radius:10px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-size:0.88rem;cursor:pointer;">Rated</button>
+                <button id="chal-btn-unrated" onclick="setChallengeType(false)" style="flex:1;padding:0.7rem;border-radius:10px;border:2px solid var(--border-inner);background:transparent;color:var(--text-secondary);font-weight:700;font-size:0.88rem;cursor:pointer;">Unrated</button>
+            </div>
+            <div style="display:flex;gap:0.6rem;">
+                <button onclick="sendChallengeConfirm()" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:0.75rem;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Send Challenge</button>
+                <button onclick="closeChallengeModal()" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:10px;padding:0.75rem;color:var(--text-secondary);font-weight:700;font-size:0.9rem;cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ── AUTH MODAL ── -->
     <div id="auth-modal" class="auth-overlay hidden">
         <div class="auth-card">
@@ -1856,7 +1967,7 @@
             <div id="auth-login-form">
                 <div class="auth-field">
                     <label>Username or Email</label>
-                    <input type="text" id="auth-login-username" placeholder="Username or email address" autocomplete="username">
+                    <input type="text" id="auth-login-username" placeholder="Username or email address" autocomplete="username" onkeydown="if(event.key==='Enter') authLogin()">
                 </div>
                 <div class="auth-field">
                     <label>Password</label>
@@ -2205,12 +2316,26 @@ function navigateTo(target) {
             if (target === 'local2p') { mpShowSection('mp-lobby-pick'); document.getElementById('mp-join-input') && (document.getElementById('mp-join-input').value = ''); document.getElementById('mp-join-error') && (document.getElementById('mp-join-error').textContent = ''); }
             if (target === 'profile') loadProfilePage();
             if (target === 'online') {
-                onlineShowSection('online-idle');
+                onlineSetIdle();
+                initOnlinePreviewBoard();
                 const sp = JSON.parse(localStorage.getItem(SERVER_PROFILE_KEY) || '{}');
-                const el = document.getElementById('online-my-elo');
-                if (el) el.textContent = sp.elo ? Math.round(sp.elo) : '—';
+                const elo = sp.elo ? Math.round(sp.elo) : '—';
+                const name = sp.username || 'You';
+                const el1 = document.getElementById('online-my-elo');
+                const el2 = document.getElementById('online-my-elo2');
+                if (el1) el1.textContent = elo;
+                if (el2) el2.textContent = elo;
+                const nameEl = document.getElementById('online-name-you');
+                if (nameEl) nameEl.textContent = name;
+                // Update your avatar initial
+                const avYou = document.getElementById('online-av-you');
+                if (avYou && sp.username) avYou.textContent = sp.username[0].toUpperCase();
+                const youCard = document.getElementById('online-card-you');
+                if (youCard) { youCard.style.opacity = '1'; youCard.className = 'player-card'; }
+                setMatchRated(true);
+                onlineLoadFriendsList();
             }
-            if (target === 'dashboard') { loadHomeDashboard(); }
+            if (target === 'dashboard') { loadHomeDashboard(); loadFriends(); }
             if (target === 'stats') { updateOverviewStats(); currentDashPanel = null; const dp = document.getElementById('dash-stat-panel'); if (dp) { dp.classList.add('hidden'); dp.innerHTML = ''; } }
             if (target === 'streak') loadStreakPage();
             if (target === 'leaderboard') loadLeaderboard();
@@ -2588,7 +2713,7 @@ function recordMatch({ result, isBot, opponent, moves, endDesc }) {
 
     // Also record to server DB (fire-and-forget)
     if (isBot) {
-        apiAuthFetch('/matches', 'POST', {
+        apiFetch('/matches', 'POST', {
             result, is_bot: true,
             opponent: opponent || 'Bot',
             move_count: moves || 0
@@ -4305,7 +4430,7 @@ async function loadLeaderboard() {
     const body = document.getElementById('lb-body');
     if (!body) return;
     try {
-        const rows = await apiAuthFetch('/leaderboard', 'GET');
+        const rows = await apiFetch('/leaderboard', 'GET');
         body.innerHTML = rows.map(r => {
             const rank  = r.rank <= 3 ? MEDAL_SVGS[r.rank - 1] : r.rank;
             const init  = r.username.charAt(0).toUpperCase();
@@ -4332,47 +4457,160 @@ let onlineOpponentName = '';
 let onlineOpponentElo  = 0;
 let _onlineLastMove    = null;  // { from_r, from_c, to_r, to_c }
 
-function onlineShowSection(id) {
-    ['online-idle','online-searching','online-matched'].forEach(s =>
-        document.getElementById(s).classList.toggle('hidden', s !== id));
+// ── Build the static preview board ───────────────────────────
+function initOnlinePreviewBoard() {
+    const board = document.getElementById('online-preview-board');
+    if (!board || board.children.length > 0) return;
+    const ROWS = 20, COLS = 11, MID = 5;
+    const BLOCKED = new Set([9*COLS+2, 9*COLS+3, 9*COLS+7, 9*COLS+8,
+                              10*COLS+2,10*COLS+3,10*COLS+7,10*COLS+8]);
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            if (BLOCKED.has(r * COLS + c)) {
+                cell.classList.add('blocked');
+            } else if (c === MID) {
+                cell.classList.add('col-mid');
+            } else if (r < 10) {
+                cell.classList.add('half-top');
+            } else {
+                cell.classList.add('half-bot');
+            }
+            // Initial pieces: only center column
+            if (c === MID && !BLOCKED.has(r * COLS + c)) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                const isP1 = r < 10;
+                const isVeylant = (isP1 && r === 0) || (!isP1 && r === 19);
+                piece.style.background = isP1
+                    ? 'linear-gradient(135deg,#c8d5e0,#a0aec0)'
+                    : 'linear-gradient(135deg,#e8955a,#b96b30)';
+                piece.style.boxShadow = isP1
+                    ? 'inset 0 2px 4px rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.2)'
+                    : '0 2px 6px rgba(185,107,48,0.4)';
+                if (isVeylant) {
+                    piece.style.border = '2px solid rgba(255,255,255,0.6)';
+                }
+                cell.appendChild(piece);
+            }
+            board.appendChild(cell);
+        }
+    }
+    // Blocked hole overlays
+    [2, 7].forEach(sc => {
+        const ov = document.createElement('div');
+        ov.className = 'blocked-overlay';
+        ov.style.left  = (3 + sc * 40) + 'px';
+        ov.style.top   = (3 + 9 * 40) + 'px';
+        ov.style.width = ov.style.height = '78px';
+        board.appendChild(ov);
+    });
 }
 
-function onlineConnect() {
-    const token = getAuthToken();
-    if (!token) { alert('Please sign in first.'); return; }
+// ── UI state helpers ──────────────────────────────────────────
+function onlineSetIdle() {
+    document.getElementById('online-controls-idle').classList.remove('hidden');
+    document.getElementById('online-controls-searching').classList.add('hidden');
+    document.getElementById('online-board-overlay').classList.add('hidden');
+    // Restore opp card
+    const oppCard = document.getElementById('online-card-opp');
+    oppCard.style.opacity = '0.4';
+    oppCard.className = 'player-card';
+    document.getElementById('online-av-opp').textContent = '?';
+    document.getElementById('online-av-opp').style.background = 'var(--bg-tertiary)';
+    document.getElementById('online-av-opp').style.color = 'var(--text-muted)';
+    document.getElementById('online-opp-name').textContent = 'Opponent';
+    document.getElementById('online-opp-elo-label').textContent = 'Waiting for match…';
+    document.getElementById('online-opp-elo-label').style.color = 'var(--text-muted)';
+}
 
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws    = new WebSocket(`${proto}://${location.host}/ws/play?token=${token}`);
-    onlineWs    = ws;
+function onlineSetSearching(label) {
+    document.getElementById('online-controls-idle').classList.add('hidden');
+    document.getElementById('online-controls-searching').classList.remove('hidden');
+    document.getElementById('online-searching-label').textContent = label || 'Finding opponent…';
+    // Board overlay
+    const ov = document.getElementById('online-board-overlay');
+    ov.classList.remove('hidden');
+    document.getElementById('online-overlay-text').textContent = label || 'Searching for opponent…';
+    document.getElementById('online-overlay-sub').textContent = _matchRated ? 'Rated game' : 'Unrated game';
+    document.getElementById('online-overlay-pulse').style.display = 'flex';
+}
 
-    ws.onopen = () => { onlineShowSection('online-searching'); };
+function onlineSetMatched(oppName, oppElo, myPlayer, isRated) {
+    document.getElementById('online-controls-idle').classList.add('hidden');
+    document.getElementById('online-controls-searching').classList.add('hidden');
+    // Update opponent card
+    const oppCard = document.getElementById('online-card-opp');
+    oppCard.style.opacity = '1';
+    oppCard.className = 'player-card ' + (myPlayer === 1 ? 'is-orange' : 'is-gray');
+    const init = oppName ? oppName[0].toUpperCase() : '?';
+    document.getElementById('online-av-opp').textContent = init;
+    document.getElementById('online-av-opp').style.background = '';
+    document.getElementById('online-av-opp').style.color = '';
+    document.getElementById('online-opp-name').textContent = oppName;
+    document.getElementById('online-opp-elo-label').textContent = `ELO ${oppElo}`;
+    document.getElementById('online-opp-elo-label').style.color = 'var(--accent)';
+    // Update your card
+    const youCard = document.getElementById('online-card-you');
+    youCard.style.opacity = '1';
+    youCard.className = 'player-card ' + (myPlayer === 1 ? 'is-gray' : 'is-orange');
+    // Board overlay
+    const ov = document.getElementById('online-board-overlay');
+    ov.classList.remove('hidden');
+    document.getElementById('online-overlay-text').textContent = 'Match found!';
+    document.getElementById('online-overlay-sub').textContent = `vs ${oppName} — ${isRated ? 'Rated' : 'Unrated'}`;
+    document.getElementById('online-overlay-pulse').style.display = 'none';
+}
 
+// Keep backward-compat references used elsewhere
+function onlineShowSection(id) {
+    if (id === 'online-idle') onlineSetIdle();
+    else if (id === 'online-searching') onlineSetSearching();
+}
+
+let _matchRated = true;
+function setMatchRated(rated) {
+    _matchRated = rated;
+    const br = document.getElementById('matchbtn-rated');
+    const bu = document.getElementById('matchbtn-unrated');
+    if (!br || !bu) return;
+    br.style.background  = rated ? 'var(--accent)' : 'transparent';
+    br.style.color       = rated ? '#fff' : 'var(--text-secondary)';
+    br.style.borderColor = rated ? 'var(--accent)' : 'var(--border-inner)';
+    bu.style.background  = !rated ? 'var(--accent)' : 'transparent';
+    bu.style.color       = !rated ? '#fff' : 'var(--text-secondary)';
+    bu.style.borderColor = !rated ? 'var(--accent)' : 'var(--border-inner)';
+    const hint = document.getElementById('online-rated-elo-hint');
+    if (hint) hint.style.display = rated ? 'block' : 'none';
+}
+
+function _onlineAttachHandlers(ws) {
     ws.onmessage = e => {
         const data = JSON.parse(e.data);
-        if (data.type === 'queued') {
-            onlineShowSection('online-searching');
+        if (data.type === 'queued' || data.type === 'waiting_for_opponent') {
+            onlineSetSearching();
         } else if (data.type === 'matched') {
             onlineGameId       = data.game_id;
             onlineMyPlayer     = data.player;
             onlineOpponentName = data.opponent;
             onlineOpponentElo  = data.opponent_elo;
-            document.getElementById('online-opp-name').textContent = data.opponent;
-            document.getElementById('online-opp-elo').textContent  = data.opponent_elo;
-            onlineShowSection('online-matched');
-            // Store server's initial state to sync after game starts
+            window._onlineIsRated = data.rated !== false;
+            onlineSetMatched(data.opponent, data.opponent_elo, data.player, data.rated !== false);
             if (data.state) window._onlineInitialState = data.state;
-            setTimeout(onlineLaunchGame, 1200);
+            setTimeout(onlineLaunchGame, 1400);
         } else if (data.type === 'state') {
             mpLoadState(data.state);
-            // Refresh ELO display if game just ended
             if (data.state && data.state.gameOver) {
                 setTimeout(async () => {
                     try {
                         const u = await apiAuthFetch('/me');
-                        const el = document.getElementById('online-my-elo');
-                        if (el) el.textContent = Math.round(u.elo);
-                        const te = document.getElementById('topbar-elo');
-                        if (te) te.textContent = Math.round(u.elo);
+                        const elo1 = document.getElementById('online-my-elo');
+                        const elo2 = document.getElementById('online-my-elo2');
+                        const te   = document.getElementById('topbar-elo');
+                        if (elo1) elo1.textContent = Math.round(u.elo);
+                        if (elo2) elo2.textContent = Math.round(u.elo);
+                        if (te)   te.textContent   = Math.round(u.elo);
                     } catch(e) {}
                 }, 1500);
             }
@@ -4383,38 +4621,36 @@ function onlineConnect() {
                 showGameOverModal(onlineMyPlayer, 'Your opponent left the game.');
             }
         } else if (data.type === 'cancelled') {
-            onlineShowSection('online-idle');
+            onlineSetIdle();
             onlineWs = null;
         } else if (data.type === 'error') {
             alert(data.msg);
-            onlineShowSection('online-idle');
+            onlineSetIdle();
             onlineWs = null;
         }
     };
+    ws.onclose = () => { if (!gameOver && gameStarted) updateStatus('Connection lost.'); onlineWs = null; };
+    ws.onerror = () => { onlineSetIdle(); onlineWs = null; };
+}
 
-    ws.onclose = () => {
-        if (!gameOver && gameStarted) {
-            updateStatus('Connection lost.');
-        }
-        onlineWs = null;
-    };
-
-    ws.onerror = () => {
-        onlineShowSection('online-idle');
-        onlineWs = null;
-    };
+function onlineConnect() {
+    const token = getAuthToken();
+    if (!token) { alert('Please sign in first.'); return; }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws    = new WebSocket(`${proto}://${location.host}/ws/play?token=${token}&rated=${_matchRated}`);
+    onlineWs    = ws;
+    ws.onopen = () => onlineSetSearching('Finding opponent…');
+    _onlineAttachHandlers(ws);
 }
 
 function onlineCancel() {
-    if (onlineWs) {
-        onlineWs.send(JSON.stringify({ type: 'cancel' }));
-    }
-    onlineShowSection('online-idle');
+    if (onlineWs) onlineWs.send(JSON.stringify({ type: 'cancel' }));
+    onlineSetIdle();
 }
 
 function onlineLaunchGame() {
     gameMode = 'online';
-    mpMyPlayer = onlineMyPlayer;   // reuse mpMyPlayer so myPlayer() works
+    mpMyPlayer = onlineMyPlayer;
     mpOpponentName = onlineOpponentName;
     navigateTo('play');
     startGame();
@@ -4432,6 +4668,230 @@ function onlineSendGameOver() {
     // Just send the final move — server will broadcast the terminal state and update ELO.
     onlineSendState();
 }
+
+// ── Friends & Challenges ────────────────────────────────────
+
+let _challengePendingId   = null;
+let _challengePendingToken = null;
+let _challengeTargetId    = null;
+let _challengeTargetName  = '';
+let _challengeRated       = true;
+let _challengePollTimer   = null;
+
+async function loadFriends() {
+    const list = document.getElementById('friends-list');
+    if (!list) return;
+    if (!getAuthToken()) {
+        list.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">Sign in to see friends.</div>';
+        return;
+    }
+    try {
+        const [friends, requests] = await Promise.all([
+            apiFetch('/friends'),
+            apiFetch('/friends/requests'),
+        ]);
+        // Render pending requests
+        const reqEl = document.getElementById('friends-requests-list');
+        if (reqEl) {
+            if (requests && requests.length) {
+                reqEl.innerHTML = requests.map(r => `
+                  <div style="display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0;border-bottom:1px solid var(--border-inner);margin-bottom:0.5rem;">
+                    <div style="flex:1;font-size:0.83rem;font-weight:600;color:var(--text-primary);">${r.username} <span style="color:var(--text-muted);font-weight:400;">wants to be friends</span></div>
+                    <button onclick="friendsAccept(${r.id})" style="background:var(--accent);border:none;border-radius:6px;padding:0.2rem 0.5rem;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">✓</button>
+                    <button onclick="friendsDecline(${r.id})" style="background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:6px;padding:0.2rem 0.5rem;color:var(--text-muted);font-size:0.75rem;font-weight:700;cursor:pointer;">✕</button>
+                  </div>`).join('');
+            } else {
+                reqEl.innerHTML = '';
+            }
+        }
+        // Render friends list
+        if (!friends || !friends.length) {
+            list.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">No friends yet. Add someone!</div>';
+        } else {
+            list.innerHTML = friends.map(f => `
+              <div style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;">
+                <div style="width:30px;height:30px;border-radius:50%;background:var(--bg-tertiary);border:1px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:var(--accent);">${f.username[0].toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.username}</div>
+                  <div style="font-size:0.75rem;color:var(--text-muted);">ELO ${f.elo}</div>
+                </div>
+                <button onclick="openChallengeModal(${f.id},'${f.username.replace(/'/g,"\\'")}',${f.elo})"
+                  style="background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:7px;padding:0.22rem 0.55rem;font-size:0.75rem;font-weight:700;color:var(--accent);cursor:pointer;">⚔️</button>
+                <button onclick="friendsRemove(${f.friendship_id})" title="Remove friend"
+                  style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;cursor:pointer;padding:0.2rem;">✕</button>
+              </div>`).join('');
+        }
+    } catch(e) {
+        if (list) list.innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">Sign in to see friends.</div>';
+    }
+}
+
+function friendsToggleAdd() {
+    const row = document.getElementById('friends-add-row');
+    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+    if (row.style.display === 'flex') {
+        row.style.display = 'block';
+        document.getElementById('friends-add-input').focus();
+    }
+    document.getElementById('friends-add-msg').textContent = '';
+}
+
+async function friendsSendRequest() {
+    const input = document.getElementById('friends-add-input');
+    const msg   = document.getElementById('friends-add-msg');
+    const name  = input.value.trim();
+    if (!name) return;
+    try {
+        await apiFetch('/friends/request', 'POST', { username: name });
+        msg.style.color = '#4ade80';
+        msg.textContent = `Request sent to ${name}!`;
+        input.value = '';
+    } catch(e) {
+        msg.style.color = 'var(--error)';
+        msg.textContent = e.message || 'Error sending request';
+    }
+}
+
+async function friendsAccept(id) {
+    await apiFetch(`/friends/${id}/accept`, 'PUT');
+    loadFriends();
+}
+
+async function friendsDecline(id) {
+    await apiFetch(`/friends/${id}`, 'DELETE');
+    loadFriends();
+}
+
+async function friendsRemove(id) {
+    if (!confirm('Remove this friend?')) return;
+    await apiFetch(`/friends/${id}`, 'DELETE');
+    loadFriends();
+}
+
+// ── Challenge modal ──────────────────────────────────────────
+
+function openChallengeModal(friendId, friendName, friendElo) {
+    _challengeTargetId   = friendId;
+    _challengeTargetName = friendName;
+    _challengeRated      = true;
+    document.getElementById('challenge-modal-name').textContent = `${friendName} (${friendElo})`;
+    setChallengeType(true);
+    document.getElementById('challenge-modal').style.display = 'flex';
+}
+
+function closeChallengeModal() {
+    document.getElementById('challenge-modal').style.display = 'none';
+}
+
+function setChallengeType(rated) {
+    _challengeRated = rated;
+    const br = document.getElementById('chal-btn-rated');
+    const bu = document.getElementById('chal-btn-unrated');
+    br.style.background  = rated ? 'var(--accent)' : 'transparent';
+    br.style.color       = rated ? '#fff' : 'var(--text-secondary)';
+    br.style.borderColor = rated ? 'var(--accent)' : 'var(--border-inner)';
+    bu.style.background  = !rated ? 'var(--accent)' : 'transparent';
+    bu.style.color       = !rated ? '#fff' : 'var(--text-secondary)';
+    bu.style.borderColor = !rated ? 'var(--accent)' : 'var(--border-inner)';
+}
+
+async function sendChallengeConfirm() {
+    closeChallengeModal();
+    try {
+        const res = await apiFetch('/challenges', 'POST', { friend_id: _challengeTargetId, rated: _challengeRated });
+        // Navigate to online page and connect with challenge token
+        navigateTo('online');
+        onlineConnectChallenge(res.game_token, _challengeTargetName, _challengeRated);
+    } catch(e) {
+        alert(e.message || 'Failed to send challenge');
+    }
+}
+
+// ── Challenge notifications (poll every 6s) ──────────────────
+
+async function pollIncomingChallenges() {
+    if (!getAuthToken()) return;
+    try {
+        const challenges = await apiFetch('/challenges/incoming');
+        if (challenges && challenges.length > 0) {
+            const c = challenges[0];  // show first pending
+            _challengePendingId    = c.id;
+            _challengePendingToken = c.game_token;
+            const toast = document.getElementById('challenge-toast');
+            document.getElementById('challenge-toast-text').textContent =
+                `${c.challenger} (${c.challenger_elo}) challenged you — ${c.rated ? 'Rated' : 'Unrated'}`;
+            toast.style.display = 'block';
+        } else {
+            const toast = document.getElementById('challenge-toast');
+            // Only hide if we don't have an active challenge WS connecting
+            if (!onlineWs) toast.style.display = 'none';
+        }
+    } catch(e) { /* not logged in / network error */ }
+}
+
+async function challengeAcceptFromToast() {
+    document.getElementById('challenge-toast').style.display = 'none';
+    if (!_challengePendingId) return;
+    try {
+        const res = await apiFetch(`/challenges/${_challengePendingId}/accept`, 'PUT');
+        navigateTo('online');
+        onlineConnectChallenge(res.game_token, '', res.rated);
+    } catch(e) {
+        alert(e.message || 'Failed to accept challenge');
+    }
+    _challengePendingId = null;
+    _challengePendingToken = null;
+}
+
+async function challengeDeclineFromToast() {
+    document.getElementById('challenge-toast').style.display = 'none';
+    if (!_challengePendingId) return;
+    try { await apiFetch(`/challenges/${_challengePendingId}/decline`, 'PUT'); } catch(e) {}
+    _challengePendingId = null;
+    _challengePendingToken = null;
+}
+
+// Connect via challenge token instead of matchmaking queue
+function onlineConnectChallenge(gameToken, opponentName, rated) {
+    const token = getAuthToken();
+    if (!token) { alert('Please sign in first.'); return; }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws    = new WebSocket(`${proto}://${location.host}/ws/play?token=${token}&challenge_token=${gameToken}`);
+    onlineWs = ws;
+    _matchRated = rated;
+    onlineSetSearching(opponentName ? `Waiting for ${opponentName}…` : 'Waiting for opponent…');
+    ws.onopen = () => {};
+    _onlineAttachHandlers(ws);
+}
+
+// ── Online page: Challenge-a-friend picker ───────────────────
+
+async function onlineLoadFriendsList() {
+    const listEl = document.getElementById('online-friends-list');
+    if (!listEl) return;
+    try {
+        const friends = await apiFetch('/friends');
+        if (!friends || !friends.length) {
+            listEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;">No friends yet — add them from Dashboard.</div>';
+            return;
+        }
+        listEl.innerHTML = friends.map(f => `
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;border-bottom:1px solid var(--border-inner);">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--bg-tertiary);border:1px solid var(--border-inner);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--accent);">${f.username[0].toUpperCase()}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.username}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">${f.elo}</div>
+            </div>
+            <button onclick="openChallengeModal(${f.id},'${f.username.replace(/'/g,"\\'")}',${f.elo})"
+              style="background:var(--accent);border:none;border-radius:7px;padding:0.28rem 0.6rem;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;">Invite</button>
+          </div>`).join('');
+    } catch(e) {
+        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;">Sign in to invite friends.</div>';
+    }
+}
+
+// kept for back-compat (challenge modal "back" button etc.)
+async function onlineShowFriendChallenge() { /* no separate section anymore — just open modal */ }
 
 function applyColorPreview() {
     const board = document.getElementById('game-board');
@@ -5521,6 +5981,23 @@ async function apiAuthFetch(endpoint, method = 'GET', body = null) {
     return data;
 }
 
+// For non-auth API endpoints (/api/leaderboard, /api/matches, /api/friends, etc.)
+async function apiFetch(endpoint, method = 'GET', body = null) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const token = getAuthToken();
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api' + endpoint, opts);
+    const data = await res.json();
+    if (!res.ok) {
+        const detail = Array.isArray(data.detail)
+            ? data.detail.map(e => e.msg || String(e)).join(', ')
+            : (data.detail || 'Request failed');
+        throw new Error(detail);
+    }
+    return data;
+}
+
 function switchAuthTab(tab) {
     ['login','register','forgot','reset'].forEach(t =>
         document.getElementById('auth-' + t + '-form').style.display = t === tab ? '' : 'none');
@@ -5535,28 +6012,41 @@ function switchAuthTab(tab) {
     else sub.textContent = 'Sign in to save your progress';
 }
 
+let _authLoginInFlight = false;
 async function authLogin() {
+    if (_authLoginInFlight) return;
     const username = document.getElementById('auth-login-username').value.trim();
     const password = document.getElementById('auth-login-password').value;
     const errEl    = document.getElementById('auth-login-error');
+    const btn      = document.querySelector('#auth-login-form .auth-submit');
     errEl.textContent = '';
     if (!username || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+    _authLoginInFlight = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
     try {
         const { access_token } = await apiAuthFetch('/login', 'POST', { username, password });
         setAuthToken(access_token);
         await initAuth();
     } catch(e) {
         errEl.textContent = e.message || 'Login failed.';
+    } finally {
+        _authLoginInFlight = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     }
 }
 
+let _authRegisterInFlight = false;
 async function authRegister() {
+    if (_authRegisterInFlight) return;
     const username = document.getElementById('auth-reg-username').value.trim();
     const email    = document.getElementById('auth-reg-email').value.trim();
     const password = document.getElementById('auth-reg-password').value;
     const errEl    = document.getElementById('auth-reg-error');
+    const btn      = document.querySelector('#auth-register-form .auth-submit');
     errEl.textContent = '';
     if (!username || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+    _authRegisterInFlight = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
     try {
         await apiAuthFetch('/register', 'POST', { username, email, password });
         // Auto-login after register
@@ -5565,6 +6055,9 @@ async function authRegister() {
         await initAuth();
     } catch(e) {
         errEl.textContent = e.message || 'Registration failed.';
+    } finally {
+        _authRegisterInFlight = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Account'; }
     }
 }
 
@@ -5622,6 +6115,11 @@ async function initAuth() {
             applyProfile();
             updateOverviewStats();
             loadHomeDashboard();
+            loadFriends();
+            // Start challenge notification polling
+            clearInterval(_challengePollTimer);
+            pollIncomingChallenges();
+            _challengePollTimer = setInterval(pollIncomingChallenges, 6000);
             return;
         } catch(e) {
             // Token invalid/expired — clear and show modal
