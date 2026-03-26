@@ -50,19 +50,18 @@ def _mp_cleanup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)  # create DB tables on startup
-    # Migration: add 'rated' column to matches if it doesn't exist yet
-    with engine.connect() as conn:
-        try:
+    # Migration: add 'rated' column if missing (each in its own transaction)
+    try:
+        with engine.begin() as conn:
             conn.execute(text("ALTER TABLE matches ADD COLUMN rated BOOLEAN DEFAULT NULL"))
-            conn.commit()
-        except Exception:
-            pass  # column already exists
-        # Fix any bot games that got rated=TRUE from a bad migration default
-        try:
-            conn.execute(text("UPDATE matches SET rated = FALSE WHERE is_bot = TRUE AND rated IS NOT FALSE"))
-            conn.commit()
-        except Exception:
-            pass
+    except Exception:
+        pass  # column already exists
+    # Fix bot games that have rated=TRUE from a bad earlier migration default
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE matches SET rated = FALSE WHERE is_bot = TRUE AND (rated IS NULL OR rated = TRUE)"))
+    except Exception:
+        pass
     yield
 
 app = FastAPI(title="Stolcade", lifespan=lifespan)
