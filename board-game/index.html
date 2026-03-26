@@ -4971,11 +4971,11 @@ function showGameOverModal(winner, desc) {
     // Ensure modal buttons are in normal game state
     document.getElementById('modal-btn-primary').textContent    = 'New Game';
     document.getElementById('modal-btn-secondary').style.display = 'none';
-    // Record match in history (always treated as bot game for offline play)
+    // Record match in local history
     recordMatch({
-        result:   humanWon ? 'win' : 'loss',
-        isBot:    true,
-        opponent: 'Offline Bot',
+        result:   gameMode === 'online' ? (winner === onlineMyPlayer ? 'win' : 'loss') : (humanWon ? 'win' : 'loss'),
+        isBot:    gameMode !== 'online',
+        opponent: gameMode === 'online' ? mpOpponentName : 'Offline Bot',
         moves:    moveCount,
         endDesc:  desc
     });
