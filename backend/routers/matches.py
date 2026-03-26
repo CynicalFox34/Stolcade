@@ -92,7 +92,7 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
             elo_after  = m.elo_p2_after
             opp_id     = m.player1_id
         opp_user   = db.query(User).filter(User.id == opp_id).first() if opp_id else None
-        is_rated   = m.rated if m.rated is not None else (not m.is_bot)
+        is_rated   = (not m.is_bot) and (m.rated is True)
         elo_change = ((elo_after or 0) - (elo_before or 0)) if is_rated else 0
         recent.append({
             "result":       result,
@@ -109,7 +109,7 @@ def get_user_profile(username: str, db: Session = Depends(get_db),
                  .filter(
                      or_(Match.player1_id == u.id, Match.player2_id == u.id),
                      Match.is_bot == False,
-                     or_(Match.rated == True, Match.rated == None),
+                     Match.rated == True,
                  ).all())
     rated_wins   = sum(1 for m in all_rated if (m.result_p1 == 'win')  == (m.player1_id == u.id))
     rated_losses = sum(1 for m in all_rated if (m.result_p1 == 'loss') == (m.player1_id == u.id))
@@ -146,12 +146,13 @@ def record_match(body: MatchRecord,
         raise HTTPException(400, "Online match results are recorded automatically.")
 
     match = Match(
-        player1_id = current_user.id,
-        result_p1  = body.result,
-        is_bot     = True,
-        move_count = body.move_count,
+        player1_id    = current_user.id,
+        result_p1     = body.result,
+        is_bot        = True,
+        rated         = False,
+        move_count    = body.move_count,
         elo_p1_before = round(current_user.elo),
-        elo_p1_after  = round(current_user.elo),  # bot games don't affect server ELO
+        elo_p1_after  = round(current_user.elo),  # bot games don't affect ELO
     )
     db.add(match)
 

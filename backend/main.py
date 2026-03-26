@@ -53,10 +53,16 @@ async def lifespan(app: FastAPI):
     # Migration: add 'rated' column to matches if it doesn't exist yet
     with engine.connect() as conn:
         try:
-            conn.execute(text("ALTER TABLE matches ADD COLUMN rated BOOLEAN DEFAULT TRUE"))
+            conn.execute(text("ALTER TABLE matches ADD COLUMN rated BOOLEAN DEFAULT NULL"))
             conn.commit()
         except Exception:
             pass  # column already exists
+        # Fix any bot games that got rated=TRUE from a bad migration default
+        try:
+            conn.execute(text("UPDATE matches SET rated = FALSE WHERE is_bot = TRUE AND rated IS NOT FALSE"))
+            conn.commit()
+        except Exception:
+            pass
     yield
 
 app = FastAPI(title="Stolcade", lifespan=lifespan)
