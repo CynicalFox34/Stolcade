@@ -1,0 +1,276 @@
+:root {
+    /* Pastel Grey & Rustic Copper Palette */
+    --bg-primary: #dce0e5; /* Pastel grey background */
+    --bg-secondary: #ebedf0; /* Slightly lighter for cards/panels */
+    --accent: #c46835; /* Rustic orange / copper */
+    --accent-glow: rgba(196, 104, 53, 0.4);
+    --text-primary: #2d3748; /* Dark grey text */
+    --text-secondary: #4a5568; /* Medium grey text */
+    
+    /* Board colors */
+    --board-p1: #a0aec0; /* Grey half */
+    --board-p2: #ed8936; /* Orange half */
+    --board-center: #c46835; /* Copper center line */
+    --board-white: #ffffff; /* White middle column */
+    --board-line: #1a202c; /* Dark grid lines */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+}
+
+#app {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+    background: rgba(235, 237, 240, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    height: 100%;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.logo h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+}
+
+.logo span {
+    color: var(--accent);
+    text-shadow: 0 0 15px var(--accent-glow);
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nav-links li a {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    display: block;
+    transition: all 0.3s ease;
+}
+
+.nav-links li a:hover, .nav-links li a.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 15px var(--accent-glow);
+    transform: translateX(5px);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dashboard View */
+.view-dashboard h1 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+}
+
+.stat-card h3 {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-card .value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+/* Play/Board View */
+.view-play {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.board-container {
+    display: flex;
+    gap: 3rem;
+    align-items: center;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg-secondary);
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    min-width: 150px;
+    border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.player-info.p1 { border-top: 4px solid var(--board-p1); }
+.player-info.p2 { border-bottom: 4px solid var(--board-p2); }
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(11, 40px);
+    grid-template-rows: repeat(20, 40px);
+    border: 4px solid var(--board-line);
+    background: var(--board-line);
+    gap: 2px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    position: relative;
+    border-radius: 4px;
+}
+
+/* The center line */
+#game-board::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--board-center);
+    transform: translateY(-50%);
+    z-index: 10;
+    pointer-events: none;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.cell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.cell:hover {
+    filter: brightness(1.1);
+}
+
+/* Row 1-10 is grey, Row 11-20 is orange */
+.cell[data-row-half="top"] { background-color: var(--board-p1); }
+.cell[data-row-half="bottom"] { background-color: var(--board-p2); }
+
+/* Col 6 is white */
+.cell[data-col="5"] { background-color: var(--board-white); }
+
+
+.piece {
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    box-shadow: inset 0 -3px 5px rgba(0,0,0,0.2), 0 3px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+    z-index: 20;
+    position: relative;
+    pointer-events: none;
+}
+
+.piece.p1 {
+    background: #475569; /* Darker slate for Player 1 */
+    border: 2px solid #94a3b8;
+}
+
+.piece.p2 {
+    background: #fcd34d; /* Yellow/Light piece for Player 2 */
+    border: 2px solid #b45309;
+}
+
+.piece.selected {
+    transform: scale(1.15);
+    box-shadow: 0 0 15px var(--accent);
+    border-color: var(--accent);
+}
+
+.piece:hover {
+    transform: scale(1.1);
+}

@@ -1,0 +1,24 @@
+# Database
+stolcade.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Training artifacts
+engine/checkpoints/
+engine/training.log
+engine/eval_games.json
+
+# Secrets
+.env
+
+# macOS
+.DS_Store
+
+# Paperclip (separate repo)
+paperclip/
