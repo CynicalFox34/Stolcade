@@ -12,6 +12,7 @@
             --bg-secondary:  #e3e6ea;
             --bg-tertiary:   #f2f3f5;
             --sidebar-bg:    #b8bec6;
+            --error:         #e05252;
             --accent:        #b5622a;
             --accent-light:  #d4814e;
             --accent-glow:   rgba(181, 98, 42, 0.35);
@@ -1288,13 +1289,13 @@
                     <div style="font-size:1rem; font-weight:800; color:var(--text-primary); flex:1;">Friends</div>
                     <button id="friends-add-btn" onclick="friendsToggleAdd()" style="background:none;border:1px solid var(--border-inner);border-radius:7px;padding:0.2rem 0.55rem;font-size:0.75rem;font-weight:700;color:var(--accent);cursor:pointer;">+ Add</button>
                 </div>
-                <!-- Add friend input -->
+                <!-- Player search -->
                 <div id="friends-add-row" style="display:none; margin-bottom:0.75rem;">
                     <div style="display:flex;gap:0.4rem;">
-                        <input id="friends-add-input" type="text" placeholder="Username…" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:8px;padding:0.4rem 0.65rem;color:var(--text-primary);font-size:0.82rem;outline:none;" onkeydown="if(event.key==='Enter')friendsSendRequest()" />
-                        <button onclick="friendsSendRequest()" style="background:var(--accent);border:none;border-radius:8px;padding:0.4rem 0.75rem;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;">Send</button>
+                        <input id="friends-add-input" type="text" placeholder="Search username…" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-inner);border-radius:8px;padding:0.4rem 0.65rem;color:var(--text-primary);font-size:0.82rem;outline:none;" onkeydown="if(event.key==='Enter')friendsSearchUser()" />
+                        <button onclick="friendsSearchUser()" style="background:var(--accent);border:none;border-radius:8px;padding:0.4rem 0.75rem;color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;">Search</button>
                     </div>
-                    <div id="friends-add-msg" style="font-size:0.78rem;margin-top:0.35rem;color:var(--text-muted);"></div>
+                    <div id="friends-add-msg" style="font-size:0.78rem;margin-top:0.35rem;"></div>
                 </div>
                 <!-- Pending requests -->
                 <div id="friends-requests-list"></div>
@@ -1936,6 +1937,41 @@
                 <button class="btn btn-primary auth-submit" onclick="authResetPassword()">Set New Password</button>
                 <div class="auth-error" id="auth-reset-error"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- ── USER PROFILE MODAL ── -->
+    <div id="user-profile-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;" onclick="if(event.target===this)closeUserProfile()">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-inner);border-radius:20px;padding:1.8rem;width:min(420px,90vw);box-shadow:var(--shadow-lg);position:relative;">
+            <button onclick="closeUserProfile()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.2rem;line-height:1;">✕</button>
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.4rem;">
+                <div id="up-avatar" style="width:54px;height:54px;border-radius:50%;background:var(--bg-tertiary);border:2px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:var(--accent);flex-shrink:0;"></div>
+                <div>
+                    <div id="up-username" style="font-size:1.25rem;font-weight:800;color:var(--text-primary);"></div>
+                    <div id="up-elo" style="font-size:0.88rem;color:var(--text-muted);font-weight:600;margin-top:0.1rem;"></div>
+                </div>
+            </div>
+            <!-- Stats row -->
+            <div style="display:flex;gap:0.6rem;margin-bottom:1.3rem;">
+                <div style="flex:1;background:var(--bg-tertiary);border-radius:10px;padding:0.7rem;text-align:center;">
+                    <div id="up-wins" style="font-size:1.2rem;font-weight:800;color:#4ade80;"></div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Wins</div>
+                </div>
+                <div style="flex:1;background:var(--bg-tertiary);border-radius:10px;padding:0.7rem;text-align:center;">
+                    <div id="up-losses" style="font-size:1.2rem;font-weight:800;color:var(--error);"></div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Losses</div>
+                </div>
+                <div style="flex:1;background:var(--bg-tertiary);border-radius:10px;padding:0.7rem;text-align:center;">
+                    <div id="up-draws" style="font-size:1.2rem;font-weight:800;color:var(--text-secondary);"></div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Draws</div>
+                </div>
+            </div>
+            <!-- Recent matches -->
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.5rem;">Recent Games</div>
+            <div id="up-matches" style="display:flex;flex-direction:column;gap:0.3rem;margin-bottom:1.3rem;max-height:180px;overflow-y:auto;"></div>
+            <!-- Action button -->
+            <div id="up-action"></div>
         </div>
     </div>
 
@@ -4238,7 +4274,7 @@ async function loadLeaderboard() {
             const rowStyle = r.is_me ? ' style="background:rgba(var(--accent-rgb,180,100,40),0.07);"' : '';
             return `<div class="lb-row"${rowStyle}>
                 <div class="lb-rank">${rank}</div>
-                <div class="lb-player"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
+                <div class="lb-player" onclick="lookupAndOpenProfile('${r.username.replace(/'/g,"\\'")}');event.stopPropagation();" style="cursor:pointer;"><div class="lb-av">${init}</div><span class="lb-name">${r.username}${meBadge}</span></div>
                 <div class="lb-elo">${r.elo}</div>
                 <div class="lb-wins">${r.wins}</div>
                 <div class="lb-losses">${r.losses}</div>
@@ -4508,7 +4544,7 @@ async function loadFriends() {
             list.innerHTML = friends.map(f => `
               <div style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;">
                 <div style="width:30px;height:30px;border-radius:50%;background:var(--bg-tertiary);border:1px solid var(--border-inner);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:var(--accent);">${f.username[0].toUpperCase()}</div>
-                <div style="flex:1;min-width:0;">
+                <div style="flex:1;min-width:0;cursor:pointer;" onclick="lookupAndOpenProfile('${f.username.replace(/'/g,"\\'")}')">
                   <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.username}</div>
                   <div style="font-size:0.75rem;color:var(--text-muted);">ELO ${f.elo}</div>
                 </div>
@@ -4525,28 +4561,94 @@ async function loadFriends() {
 
 function friendsToggleAdd() {
     const row = document.getElementById('friends-add-row');
-    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
-    if (row.style.display === 'flex') {
-        row.style.display = 'block';
-        document.getElementById('friends-add-input').focus();
-    }
+    const showing = row.style.display === 'none' || row.style.display === '';
+    row.style.display = showing ? 'block' : 'none';
+    if (showing) document.getElementById('friends-add-input').focus();
     document.getElementById('friends-add-msg').textContent = '';
 }
 
-async function friendsSendRequest() {
+async function friendsSearchUser() {
     const input = document.getElementById('friends-add-input');
     const msg   = document.getElementById('friends-add-msg');
     const name  = input.value.trim();
     if (!name) return;
+    msg.style.color = 'var(--text-muted)';
+    msg.textContent = 'Searching…';
     try {
-        await apiFetch('/friends/request', 'POST', { username: name });
-        msg.style.color = '#4ade80';
-        msg.textContent = `Request sent to ${name}!`;
-        input.value = '';
+        const data = await apiFetch('/users/' + encodeURIComponent(name));
+        msg.textContent = '';
+        openUserProfile(data);
     } catch(e) {
         msg.style.color = 'var(--error)';
-        msg.textContent = e.message || 'Error sending request';
+        msg.textContent = e.message || 'User not found';
     }
+}
+
+async function friendsSendRequest(username) {
+    try {
+        await apiFetch('/friends/request', 'POST', { username });
+        loadFriends();
+        return true;
+    } catch(e) {
+        alert(e.message || 'Error sending request');
+        return false;
+    }
+}
+
+async function lookupAndOpenProfile(username) {
+    try {
+        const data = await apiFetch('/users/' + encodeURIComponent(username));
+        openUserProfile(data);
+    } catch(e) { alert(e.message || 'Could not load profile'); }
+}
+
+function openUserProfile(data) {
+    const modal = document.getElementById('user-profile-modal');
+    document.getElementById('up-avatar').textContent = data.username[0].toUpperCase();
+    document.getElementById('up-username').textContent = data.username;
+    document.getElementById('up-elo').textContent = `ELO ${data.elo}  ·  ${data.wins + data.losses + data.draws} games`;
+    document.getElementById('up-wins').textContent = data.wins;
+    document.getElementById('up-losses').textContent = data.losses;
+    document.getElementById('up-draws').textContent = data.draws;
+
+    // Recent matches
+    const matchesEl = document.getElementById('up-matches');
+    if (!data.recent_matches || !data.recent_matches.length) {
+        matchesEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:0.5rem 0;">No games yet</div>';
+    } else {
+        matchesEl.innerHTML = data.recent_matches.map(m => {
+            const color = m.result === 'win' ? '#4ade80' : m.result === 'loss' ? 'var(--error)' : 'var(--text-muted)';
+            const label = m.result.charAt(0).toUpperCase() + m.result.slice(1);
+            const eloStr = m.elo_change > 0 ? `+${m.elo_change}` : `${m.elo_change}`;
+            const eloColor = m.elo_change > 0 ? '#4ade80' : m.elo_change < 0 ? 'var(--error)' : 'var(--text-muted)';
+            const opp = m.is_bot ? `vs Bot` : `vs ${m.opponent}`;
+            const dateStr = m.date ? new Date(m.date).toLocaleDateString(undefined, {month:'short',day:'numeric'}) : '';
+            return `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0.5rem;background:var(--bg-tertiary);border-radius:7px;font-size:0.8rem;">
+                <span style="font-weight:800;color:${color};width:36px;">${label}</span>
+                <span style="flex:1;color:var(--text-secondary);">${opp}</span>
+                ${!m.is_bot ? `<span style="font-weight:700;color:${eloColor};">${eloStr}</span>` : ''}
+                <span style="color:var(--text-muted);font-size:0.74rem;">${dateStr}</span>
+            </div>`;
+        }).join('');
+    }
+
+    // Action button
+    const actionEl = document.getElementById('up-action');
+    if (data.is_me) {
+        actionEl.innerHTML = '';
+    } else if (data.friendship_status === 'accepted') {
+        actionEl.innerHTML = `<div style="text-align:center;font-size:0.85rem;color:var(--text-muted);font-weight:600;">✓ Already friends</div>`;
+    } else if (data.friendship_status === 'pending') {
+        actionEl.innerHTML = `<div style="text-align:center;font-size:0.85rem;color:var(--text-muted);font-weight:600;">Request pending…</div>`;
+    } else {
+        actionEl.innerHTML = `<button onclick="friendsSendRequest('${data.username.replace(/'/g,"\\'")}').then(ok=>{if(ok){document.getElementById('up-action').innerHTML='<div style=\\'text-align:center;font-size:0.85rem;color:#4ade80;font-weight:600;\\'>✓ Request sent!</div>';}})" style="width:100%;background:var(--accent);border:none;border-radius:10px;padding:0.7rem;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;">+ Add Friend</button>`;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeUserProfile() {
+    document.getElementById('user-profile-modal').style.display = 'none';
 }
 
 async function friendsAccept(id) {
