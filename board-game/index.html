@@ -1845,18 +1845,18 @@
         <div class="auth-card">
             <div class="auth-logo">
                 <div class="auth-logo-title">Stolcade <span>Arena</span></div>
-                <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.3rem;">Sign in to save your progress</div>
+                <div id="auth-logo-sub" style="font-size:0.82rem; color:var(--text-muted); margin-top:0.3rem;">Sign in to save your progress</div>
             </div>
-            <div class="auth-tabs">
+            <div class="auth-tabs" id="auth-tabs-row">
                 <button class="auth-tab-btn active" id="atab-login" onclick="switchAuthTab('login')">Sign In</button>
                 <button class="auth-tab-btn" id="atab-register" onclick="switchAuthTab('register')">Create Account</button>
             </div>
 
-            <!-- Login -->
+            <!-- Sign In -->
             <div id="auth-login-form">
                 <div class="auth-field">
-                    <label>Username</label>
-                    <input type="text" id="auth-login-username" placeholder="Your username" autocomplete="username">
+                    <label>Username or Email</label>
+                    <input type="text" id="auth-login-username" placeholder="Username or email address" autocomplete="username">
                 </div>
                 <div class="auth-field">
                     <label>Password</label>
@@ -1864,9 +1864,12 @@
                 </div>
                 <button class="btn btn-primary auth-submit" onclick="authLogin()">Sign In</button>
                 <div class="auth-error" id="auth-login-error"></div>
+                <div class="auth-switch" style="margin-top:0.7rem;">
+                    <a onclick="switchAuthTab('forgot')">Forgot password?</a>
+                </div>
             </div>
 
-            <!-- Register -->
+            <!-- Create Account -->
             <div id="auth-register-form" style="display:none;">
                 <div class="auth-field">
                     <label>Username</label>
@@ -1882,6 +1885,35 @@
                 </div>
                 <button class="btn btn-primary auth-submit" onclick="authRegister()">Create Account</button>
                 <div class="auth-error" id="auth-reg-error"></div>
+            </div>
+
+            <!-- Forgot Password -->
+            <div id="auth-forgot-form" style="display:none;">
+                <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.2rem; line-height:1.5;">Enter the email address on your account and we'll send you a reset link.</p>
+                <div class="auth-field">
+                    <label>Email Address</label>
+                    <input type="email" id="auth-forgot-email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter') authForgotPassword()">
+                </div>
+                <button class="btn btn-primary auth-submit" onclick="authForgotPassword()">Send Reset Link</button>
+                <div class="auth-error" id="auth-forgot-error"></div>
+                <div class="auth-switch" style="margin-top:0.7rem;">
+                    <a onclick="switchAuthTab('login')">← Back to Sign In</a>
+                </div>
+            </div>
+
+            <!-- Reset Password (shown when ?reset=TOKEN in URL) -->
+            <div id="auth-reset-form" style="display:none;">
+                <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.2rem;">Choose a new password for your account.</p>
+                <div class="auth-field">
+                    <label>New Password</label>
+                    <input type="password" id="auth-reset-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter') authResetPassword()">
+                </div>
+                <div class="auth-field">
+                    <label>Confirm Password</label>
+                    <input type="password" id="auth-reset-confirm" placeholder="Re-enter new password" autocomplete="new-password" onkeydown="if(event.key==='Enter') authResetPassword()">
+                </div>
+                <button class="btn btn-primary auth-submit" onclick="authResetPassword()">Set New Password</button>
+                <div class="auth-error" id="auth-reset-error"></div>
             </div>
         </div>
     </div>
@@ -5484,10 +5516,17 @@ async function apiAuthFetch(endpoint, method = 'GET', body = null) {
 }
 
 function switchAuthTab(tab) {
-    document.getElementById('auth-login-form').style.display    = tab === 'login'    ? '' : 'none';
-    document.getElementById('auth-register-form').style.display = tab === 'register' ? '' : 'none';
+    ['login','register','forgot','reset'].forEach(t =>
+        document.getElementById('auth-' + t + '-form').style.display = t === tab ? '' : 'none');
     document.getElementById('atab-login').classList.toggle('active',    tab === 'login');
     document.getElementById('atab-register').classList.toggle('active', tab === 'register');
+    // Hide tab row for forgot/reset flows
+    const showTabs = tab === 'login' || tab === 'register';
+    document.getElementById('auth-tabs-row').style.display = showTabs ? '' : 'none';
+    const sub = document.getElementById('auth-logo-sub');
+    if (tab === 'forgot') sub.textContent = 'Reset your password';
+    else if (tab === 'reset') sub.textContent = 'Choose a new password';
+    else sub.textContent = 'Sign in to save your progress';
 }
 
 async function authLogin() {
@@ -5523,6 +5562,41 @@ async function authRegister() {
     }
 }
 
+async function authForgotPassword() {
+    const email = document.getElementById('auth-forgot-email').value.trim();
+    const errEl = document.getElementById('auth-forgot-error');
+    errEl.textContent = '';
+    if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
+    try {
+        await apiAuthFetch('/forgot-password', 'POST', { email });
+        errEl.style.color = 'var(--accent)';
+        errEl.textContent = 'If that email exists, a reset link has been sent.';
+        errEl.style.opacity = '1';
+        document.getElementById('auth-forgot-email').value = '';
+    } catch(e) {
+        errEl.style.color = '#c26b6b'; errEl.textContent = e.message || 'Something went wrong.'; errEl.style.opacity = '1';
+    }
+}
+
+async function authResetPassword() {
+    const token    = new URLSearchParams(window.location.search).get('reset');
+    const password = document.getElementById('auth-reset-password').value;
+    const confirm  = document.getElementById('auth-reset-confirm').value;
+    const errEl    = document.getElementById('auth-reset-error');
+    errEl.textContent = '';
+    if (!password || password.length < 6) { errEl.style.color = '#c26b6b'; errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.opacity = '1'; return; }
+    if (password !== confirm) { errEl.style.color = '#c26b6b'; errEl.textContent = 'Passwords do not match.'; errEl.style.opacity = '1'; return; }
+    try {
+        await apiAuthFetch('/reset-password', 'POST', { token, new_password: password });
+        // Clean URL, show login
+        window.history.replaceState({}, '', '/');
+        errEl.style.color = 'var(--accent)'; errEl.textContent = 'Password updated! Please sign in.'; errEl.style.opacity = '1';
+        setTimeout(() => switchAuthTab('login'), 1500);
+    } catch(e) {
+        errEl.style.color = '#c26b6b'; errEl.textContent = e.message || 'Reset failed.'; errEl.style.opacity = '1';
+    }
+}
+
 async function initAuth() {
     const token = getAuthToken();
     if (token) {
@@ -5548,6 +5622,14 @@ async function initAuth() {
             clearAuthToken();
         }
     }
+    // Check for password reset token in URL
+    const resetToken = new URLSearchParams(window.location.search).get('reset');
+    if (resetToken) {
+        switchAuthTab('reset');
+        document.getElementById('auth-modal').classList.remove('hidden');
+        return;
+    }
+
     // Show modal
     document.getElementById('auth-modal').classList.remove('hidden');
 }

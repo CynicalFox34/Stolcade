@@ -8,8 +8,15 @@ class UserRegister(BaseModel):
     password: str
 
 class UserLogin(BaseModel):
-    username: str
+    username: str          # accepts username OR email
     password: str
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
 
 class UserOut(BaseModel):
     id: int
