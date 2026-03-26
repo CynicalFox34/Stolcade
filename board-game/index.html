@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
+            --cell:          38px;
             --bg-primary:    #d0d4d9;
             --bg-secondary:  #e3e6ea;
             --bg-tertiary:   #f2f3f5;
@@ -769,8 +770,8 @@
 
         #game-board, #online-preview-board {
             display: grid;
-            grid-template-columns: repeat(11, 38px);
-            grid-template-rows: repeat(20, 38px);
+            grid-template-columns: repeat(11, var(--cell));
+            grid-template-rows: repeat(20, var(--cell));
             gap: 2px;
             padding: 3px;
             background: #4a5260;
@@ -800,7 +801,7 @@
         }
 
         .cell {
-            width: 38px; height: 38px;
+            width: var(--cell); height: var(--cell);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
             position: relative;
@@ -1135,6 +1136,296 @@
         .rnav-info {
             display: none;
         }
+        /* ════════════════════════════════════════════════
+           BOTTOM NAV  (desktop: hidden; mobile: shown)
+           ════════════════════════════════════════════════ */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 56px;
+            background: var(--sidebar-bg);
+            border-top: 1px solid var(--border);
+            flex-direction: row;
+            align-items: stretch;
+            z-index: 1000;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.12);
+        }
+        .bn-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: color 0.15s;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .bn-item.active { color: var(--accent); }
+        .bn-item:hover  { color: var(--text-primary); }
+
+        /* Mobile topbar logo (hidden on desktop) */
+        .topbar-mobile-logo {
+            display: none;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #5a7080;
+            text-decoration: none;
+            margin-right: auto;
+            letter-spacing: -0.5px;
+        }
+        .topbar-mobile-logo span { color: #c97a3a; }
+
+        /* ════════════════════════════════════════════════
+           MOBILE  (≤ 768 px)
+           ════════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+
+            body { height: 100vh; height: 100svh; }
+
+            /* ── Navigation ── */
+            .sidebar     { display: none; }
+            .bottom-nav  { display: flex; }
+            .main        { padding-bottom: 56px; }
+
+            /* ── Topbar ── */
+            .topbar {
+                padding: 0.55rem 1rem;
+                justify-content: flex-end;
+            }
+            .topbar-mobile-logo { display: flex; align-items: center; }
+            .topbar-streak-chip { margin-right: 0.5rem; }
+
+            /* ── Pages ── */
+            .page { padding: 1rem; }
+            .page-header h2  { font-size: 1.5rem; }
+            .page-header p   { font-size: 0.88rem; }
+
+            /* ── Stats grid: 3 cols → 2 cols ── */
+            .stats-row {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.7rem;
+                margin-bottom: 1rem;
+            }
+            .stat-card { padding: 1rem 1rem; }
+            .stat-card .val { font-size: 1.6rem; }
+
+            /* ── Play & Online pages: full-screen column layout ── */
+            #page-play, #page-online {
+                padding: 0;
+                overflow: hidden;
+            }
+
+            /* Board cell size on mobile */
+            :root { --cell: 28px; }
+
+            /* Recalculate center-line gradient for 28 px cells (scale ≈ 0.7368) */
+            #game-board::after, #online-preview-board::after {
+                background: linear-gradient(90deg,
+                    var(--center-line) 0,      var(--center-line) 57.7px,
+                    transparent        57.7px,  transparent        117.7px,
+                    var(--center-line) 117.7px, var(--center-line) 205.0px,
+                    transparent        205.0px, transparent        265.0px,
+                    var(--center-line) 265.0px, var(--center-line) 100%
+                );
+            }
+
+            /* play-layout: vertical column */
+            .play-layout {
+                flex-direction: column;
+                height: 100%;
+                gap: 0;
+                overflow: hidden;
+                align-items: stretch;
+            }
+
+            /* Flatten sidebar — children become direct flex children of play-layout */
+            .play-sidebar { display: contents; }
+
+            /* Flex order: opp(0) → board(1) → you(2) → controls(3) */
+            #card-bot,        #online-card-opp { order: 0; }
+            .board-area                         { order: 1; }
+            #card-you,        #online-card-you  { order: 2; }
+            .game-controls                      { order: 3; }
+
+            /* Hide history panel */
+            .history-panel { display: none !important; }
+
+            /* ── Board area ── */
+            .board-area {
+                flex: 1;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                overflow: hidden;
+            }
+            .board-topbar {
+                border-radius: 0;
+                padding: 0.4rem 0.9rem;
+                font-size: 0.82rem;
+                border-left: none;
+                border-right: none;
+                border-top: none;
+            }
+            .board-wrap {
+                flex: 1;
+                min-height: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                padding: 4px 0;
+            }
+
+            /* ── Compact player cards (horizontal bars) ── */
+            #card-you, #card-bot,
+            #online-card-you, #online-card-opp {
+                flex-direction: row;
+                align-items: center;
+                padding: 0.45rem 0.9rem;
+                border-radius: 0;
+                border: none;
+                border-bottom: 1px solid var(--border-inner);
+                box-shadow: none;
+                gap: 0.65rem;
+                text-align: left;
+                min-height: 46px;
+                background: var(--bg-secondary);
+            }
+            /* color indicator on left side instead of top */
+            #card-you.is-orange, #online-card-you.is-orange,
+            #card-bot.is-orange, #online-card-opp.is-orange {
+                border-top: none;
+                border-left: 4px solid var(--accent);
+            }
+            #card-you.is-gray, #online-card-you.is-gray,
+            #card-bot.is-gray, #online-card-opp.is-gray {
+                border-top: none;
+                border-left: 4px solid var(--board-grey);
+            }
+            #card-you .p-av, #card-bot .p-av,
+            #online-card-you .p-av, #online-card-opp .p-av {
+                width: 32px; height: 32px; min-width: 32px; font-size: 0.8rem;
+            }
+            #card-you h4, #card-bot h4,
+            #online-card-you h4, #online-card-opp h4 {
+                font-size: 0.88rem; margin: 0;
+            }
+            #card-you .p-elo, #card-bot .p-elo,
+            #online-card-you .p-elo, #online-card-opp .p-elo {
+                font-size: 0.75rem;
+            }
+            #card-you .p-score, #card-bot .p-score {
+                margin-left: auto;
+                font-size: 0.68rem;
+                padding: 0.2rem 0.45rem;
+            }
+            #card-you .clock-display, #card-bot .clock-display {
+                margin-top: 0;
+                margin-left: auto;
+                font-size: 0.85rem;
+                padding: 0.15rem 0.45rem;
+            }
+
+            /* ── Compact game controls ── */
+            #pregame-controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 0.9rem;
+                background: none;
+                border: none;
+                box-shadow: none;
+                border-top: 1px solid var(--border-inner);
+            }
+            #pregame-controls h4 { display: none; }
+            #pregame-controls select { flex: 1; min-width: 110px; }
+            #pregame-controls .btn  { width: auto; padding: 0.5rem 1rem; }
+
+            #ingame-controls {
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-end;
+                padding: 0.35rem 0.9rem;
+                background: none;
+                border: none;
+                box-shadow: none;
+                border-top: 1px solid var(--border-inner);
+            }
+            #ingame-controls #ingame-info { display: none; }
+            #ingame-controls #btn-resign  { width: auto; padding: 0.4rem 1rem; font-size: 0.82rem; }
+
+            #replay-controls {
+                padding: 0.5rem 0.9rem;
+                background: none;
+                border: none;
+                box-shadow: none;
+                border-top: 1px solid var(--border-inner);
+            }
+
+            /* Online controls */
+            #online-controls-idle,
+            #online-controls-searching {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 0.9rem;
+                background: none;
+                border: none;
+                box-shadow: none;
+                border-top: 1px solid var(--border-inner);
+            }
+            /* Hide verbose labels and friends invite section on mobile */
+            #online-controls-idle > div:first-child      { display: none; } /* "Game Type" label */
+            #online-controls-idle > div:last-child        { display: none; } /* friends invite */
+            #online-rated-elo-hint                        { display: none; }
+            #online-controls-idle > div:nth-child(2)      { flex: 0 0 auto; }
+            #online-controls-idle > button.btn            { flex: 1; margin: 0; }
+            #online-controls-searching > div:first-child  { flex: 1; margin: 0; }
+            #online-controls-searching > div:first-child > div:last-child { display: none; } /* hide dots */
+            #online-searching-label                       { margin: 0; font-size: 0.85rem; }
+
+            /* ── Modals ── */
+            .modal-content {
+                min-width: 0;
+                width: 88vw;
+                max-width: 340px;
+                padding: 2rem 1.5rem;
+            }
+            .auth-card {
+                padding: 2rem 1.5rem;
+                border-radius: 16px;
+                margin: 0 1rem;
+            }
+            /* Challenge toast above bottom nav */
+            #challenge-toast {
+                bottom: 4.5rem !important;
+                right: 1rem !important;
+                max-width: calc(100vw - 2rem) !important;
+            }
+
+            /* ── Leaderboard ── */
+            .lb-row { padding: 0.75rem 1rem; }
+
+            /* ── Match rows ── */
+            .match-row { padding: 0.6rem 0.75rem; font-size: 0.82rem; gap: 0.55rem; }
+
+            /* ── Dashboard cards ── */
+            /* Stat panel, recent matches fill full width */
+            .matches-card { max-width: 100%; }
+
+            /* page-header dark mode toggle — shrink on mobile */
+            .page-header { margin-bottom: 1.2rem; }
+        }
     </style>
 </head>
 <body>
@@ -1163,7 +1454,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </span> Play Online
         </a>
-        <script>if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){document.getElementById('online-nav-link').style.cssText='display:none !important';}</script>
+        <script>if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){document.getElementById('online-nav-link').style.cssText='display:none !important';const bnO=document.getElementById('bn-online');if(bnO)bnO.style.cssText='display:none !important';}</script>
         <a href="#" data-page="play">
             <span class="icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
@@ -1200,6 +1491,7 @@
 <div class="main">
     <!-- Top bar -->
     <div class="topbar">
+        <a class="topbar-mobile-logo" href="#" onclick="navigateTo('dashboard'); return false;">Stol<span>cade</span></a>
         <div id="topbar-streak" class="topbar-streak-chip" style="display:none;" onclick="navigateTo('streak')">
             <svg width="20" height="20" viewBox="0 0 32 32" fill="none" style="flex-shrink:0;">
                 <path d="M16 2 C13 8 8 11 8 17.5 C8 23.5 11.5 28 16 29 C20.5 28 24 23.5 24 17.5 C24 11 19 8 16 2Z" fill="#ea580c"/>
@@ -2283,6 +2575,7 @@ function navigateTo(target) {
     const navTarget = (target === 'play' && gameMode === 'online') ? 'online'
                     : target;
     navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === navTarget));
+    document.querySelectorAll('.bn-item').forEach(l => l.classList.toggle('active', l.dataset.page === navTarget));
     const streakChip = document.getElementById('topbar-streak');
     if (streakChip) streakChip.style.display = (target === 'dashboard' || target === 'streak') ? 'none' : 'flex';
     pages.forEach(p => {
@@ -2335,7 +2628,7 @@ navLinks.forEach(link => {
 });
 
 // ─── PROFILE ───────────────────────────────────────────────
-const PROFILE_KEY = 'stolcade_profile';
+let PROFILE_KEY = 'stolcade_profile';
 
 function loadProfile() {
     const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
@@ -5738,7 +6031,7 @@ const SERVER_PROFILE_KEY = 'stolcade_server_profile';
 
 function getAuthToken() { return sessionStorage.getItem(AUTH_TOKEN_KEY); }
 function setAuthToken(t) { sessionStorage.setItem(AUTH_TOKEN_KEY, t); }
-function clearAuthToken() { sessionStorage.removeItem(AUTH_TOKEN_KEY); sessionStorage.removeItem(SERVER_PROFILE_KEY); }
+function clearAuthToken() { sessionStorage.removeItem(AUTH_TOKEN_KEY); sessionStorage.removeItem(SERVER_PROFILE_KEY); PROFILE_KEY = 'stolcade_profile'; }
 
 async function apiAuthFetch(endpoint, method = 'GET', body = null) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -6221,6 +6514,14 @@ async function initAuth() {
     if (token) {
         try {
             const user = await apiAuthFetch('/me');
+            // Switch to user-specific profile key so different accounts in different tabs don't collide
+            PROFILE_KEY = `stolcade_profile_${user.id}`;
+            // Migrate generic profile to user-specific key (one-time)
+            const genericProfile = JSON.parse(localStorage.getItem('stolcade_profile') || '{}');
+            const existingProfile = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+            if (!existingProfile.username && genericProfile.username) {
+                localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...genericProfile, username: user.username, email: user.email }));
+            }
             // Cache server profile fields
             sessionStorage.setItem(SERVER_PROFILE_KEY, JSON.stringify({
                 username: user.username, email: user.email, id: user.id,
@@ -6283,6 +6584,30 @@ updateStreakDisplay();
 setInterval(updateStreakDisplay, 1000);
 initAuth(); // async: calls applyProfile/updateOverviewStats/loadHomeDashboard after auth check
 </script>
+
+<!-- ─── BOTTOM NAV (mobile only) ────────────────────── -->
+<nav class="bottom-nav" id="bottom-nav">
+    <a class="bn-item active" data-page="dashboard" href="#" onclick="navigateTo('dashboard'); return false;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+    </a>
+    <a class="bn-item" data-page="play" href="#" onclick="navigateTo('play'); return false;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+        <span>Play</span>
+    </a>
+    <a class="bn-item" data-page="online" href="#" onclick="navigateTo('online'); return false;" id="bn-online">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span>Online</span>
+    </a>
+    <a class="bn-item" data-page="stats" href="#" onclick="navigateTo('stats'); return false;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Stats</span>
+    </a>
+    <a class="bn-item" data-page="leaderboard" href="#" onclick="navigateTo('leaderboard'); return false;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Ranks</span>
+    </a>
+</nav>
 
 </body>
 </html>
