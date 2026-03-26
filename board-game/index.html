@@ -632,7 +632,7 @@
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; color: white; font-size: 0.75rem;
         }
-        .lb-name { font-weight: 600; color: #f5a05a; }
+        .lb-name { font-weight: 600; color: #4285f4; }
         .lb-elo { font-weight: 800; color: var(--accent); }
         .lb-wins, .lb-losses { color: var(--text-secondary); font-weight: 600; }
         .me-badge {
@@ -2817,7 +2817,7 @@ function matchRowHtml(m, clickable) {
     const eloSuffix = m.opponent_elo ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${m.opponent_elo})</span>` : '';
     const oppDisplay = (m.isBot || !m.opponent || m.opponent === 'Bot')
         ? `<span style="color:var(--text-secondary);">${m.opponent || 'Bot'}</span>`
-        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
+        : `<span onclick="event.stopPropagation();viewPlayerProfile('${(m.opponent||'').replace(/'/g,"\\'")}','stats')" style="color:#4285f4;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
     const movesTag = m.moves != null ? `<span style="color:var(--text-muted); font-size:0.78rem;">${m.moves} moves</span>` : '';
     return `<div class="match-row" ${onclick} style="${rowStyle}">
         <span style="color:${resultColor}; font-weight:700; text-transform:uppercase;
@@ -4744,7 +4744,7 @@ function _renderPPMatches() {
             oppHtml = '<span style="color:var(--text-secondary);">Bot</span>';
         } else {
             const eloSuffix = m.opponent_elo ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(${m.opponent_elo})</span>` : '';
-            oppHtml = `<span onclick="viewPlayerProfile('${m.opponent.replace(/'/g,"\\'")}','player-profile')" style="color:#f5a05a;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
+            oppHtml = `<span onclick="viewPlayerProfile('${m.opponent.replace(/'/g,"\\'")}','player-profile')" style="color:#4285f4;cursor:pointer;font-weight:700;">${m.opponent}</span>${eloSuffix}`;
         }
         let eloTag = '';
         if (m.rated && !m.is_bot && m.elo_change !== 0) {
