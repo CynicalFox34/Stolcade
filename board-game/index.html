@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --cell:          38px;
+            --cell:          clamp(24px, calc((100vh - 160px) / 22), 38px);
             --bg-primary:    #d0d4d9;
             --bg-secondary:  #e3e6ea;
             --bg-tertiary:   #f2f3f5;
@@ -811,11 +811,14 @@
 
         /* Grid background colors — ID prefix raises specificity to (1,2,0) */
         #game-board .cell.half-top,
-        #online-preview-board .cell.half-top  { background: var(--board-grey); }
+        #online-preview-board .cell.half-top,
+        #lp-game-board .cell.half-top  { background: var(--board-grey); }
         #game-board .cell.half-bot,
-        #online-preview-board .cell.half-bot  { background: var(--board-orange); }
+        #online-preview-board .cell.half-bot,
+        #lp-game-board .cell.half-bot  { background: var(--board-orange); }
         #game-board .cell.col-mid,
-        #online-preview-board .cell.col-mid   { background: var(--board-white); }
+        #online-preview-board .cell.col-mid,
+        #lp-game-board .cell.col-mid   { background: var(--board-white); }
 
         .dimmed {
             filter: grayscale(40%) opacity(0.6);
