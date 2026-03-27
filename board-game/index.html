@@ -1234,11 +1234,18 @@
                 flex-direction: column;
             }
 
-            /* Board cell size: fit the full 20-row board in the available height.
-               260px = topbar (~44) + bottom-nav (56) + player cards (~2×46) + board
-               internal padding/gaps (~50). Clamp keeps it between 18–32px. */
+            /* Board cell size: fit the full 20-row board in the available height */
             :root { --cell: clamp(18px, calc((100vh - 260px) / 20), 32px); }
             :root { --cell: clamp(18px, calc((100svh - 260px) / 20), 32px); }
+
+            /* Hardcode cell colors so they always show regardless of CSS variable issues */
+            .cell.half-top { background: #a0aec0 !important; }
+            .cell.half-bot { background: #dd8a50 !important; }
+            .cell.col-mid  { background: #f8f4ef !important; }
+            .cell.blocked  { background: var(--bg-primary, #d0d4d9) !important; }
+            body.dark .cell.half-top { background: #a0aec0 !important; }
+            body.dark .cell.half-bot { background: #dd8a50 !important; }
+            body.dark .cell.col-mid  { background: #f8f4ef !important; }
 
             /* Center-line gradient: universal calc()-based formula */
             #game-board::after, #online-preview-board::after {
