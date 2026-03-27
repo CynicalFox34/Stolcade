@@ -3187,11 +3187,12 @@ document.querySelectorAll('.board-wrap').forEach(wrap => {
         if (e.touches.length === 2) {
             _bzPinch0 = _bzPinchDist(e.touches[0], e.touches[1]);
             _bzPinchS0 = _bz.s;
+            _bzPan0 = null; // stop any active pan when pinch starts
         } else if (e.touches.length === 1) {
             const now = Date.now();
             if (now - _bzLastTap < 300) { _bzReset(board); }
             _bzLastTap = now;
-            if (_bz.s > 1.05) {
+            if (Math.abs(_bz.s - 1) > 0.05) {
                 _bzPan0 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 _bzPanBase = { x: _bz.x, y: _bz.y };
             }
@@ -3203,9 +3204,9 @@ document.querySelectorAll('.board-wrap').forEach(wrap => {
         const board = wrap.querySelector('#game-board, #online-preview-board');
         if (e.touches.length === 2 && _bzPinch0) {
             e.preventDefault();
-            _bz.s = Math.max(0.6, Math.min(3.5, _bzPinchS0 * _bzPinchDist(e.touches[0], e.touches[1]) / _bzPinch0));
+            _bz.s = Math.max(0.35, Math.min(3.5, _bzPinchS0 * _bzPinchDist(e.touches[0], e.touches[1]) / _bzPinch0));
             _bzApply(board);
-        } else if (e.touches.length === 1 && _bz.s > 1.05 && _bzPan0) {
+        } else if (e.touches.length === 1 && Math.abs(_bz.s - 1) > 0.05 && _bzPan0) {
             e.preventDefault();
             _bz.x = _bzPanBase.x + e.touches[0].clientX - _bzPan0.x;
             _bz.y = _bzPanBase.y + e.touches[0].clientY - _bzPan0.y;
@@ -3214,11 +3215,13 @@ document.querySelectorAll('.board-wrap').forEach(wrap => {
     }, { passive: false });
 
     wrap.addEventListener('touchend', e => {
-        if (e.touches.length === 0) _bzPan0 = null;
         if (e.touches.length < 2) _bzPinch0 = 0;
-        if (e.touches.length === 0 && _bz.s < 0.85) {
-            const board = wrap.querySelector('#game-board, #online-preview-board');
-            _bzReset(board);
+        if (e.touches.length === 1 && Math.abs(_bz.s - 1) > 0.05) {
+            // went from 2-finger pinch to 1-finger — anchor pan to remaining finger
+            _bzPan0 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            _bzPanBase = { x: _bz.x, y: _bz.y };
+        } else if (e.touches.length === 0) {
+            _bzPan0 = null;
         }
     }, { passive: true });
 });
