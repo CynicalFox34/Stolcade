@@ -1229,12 +1229,9 @@
             .stat-card { padding: 1rem 1rem; }
             .stat-card .val { font-size: 1.6rem; }
 
-            /* ── Play & Online pages: full-screen column layout ── */
+            /* ── Play & Online pages ── */
             #page-play, #page-online {
                 padding: 0;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
             }
 
             /* Board cell size: 32px — shows 10 rows at a time in the swipe viewport */
@@ -1257,13 +1254,10 @@
                 );
             }
 
-            /* play-layout: vertical column, fills its flex parent */
+            /* play-layout: vertical column */
             .play-layout {
-                flex: 1;
-                min-height: 0;
                 flex-direction: column;
                 gap: 0;
-                overflow: hidden;
                 align-items: stretch;
             }
 
