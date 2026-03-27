@@ -788,12 +788,18 @@
             left: 3px; right: 3px;
             top: calc(50% - 3.06px);
             height: 6px;
+            /* Center line with gaps at blocked cols 2-3 and 7-8 */
             background: linear-gradient(90deg,
-                var(--center-line) 0,      var(--center-line) 78.24px,
-                transparent        78.24px,   transparent        159.76px,
-                var(--center-line) 159.76px,  var(--center-line) 278.24px,
-                transparent        278.24px,  transparent        359.76px,
-                var(--center-line) 359.76px,  var(--center-line) 100%
+                var(--center-line) 0,
+                var(--center-line) calc(2 * (var(--cell) + 2px) - 0.88px),
+                transparent        calc(2 * (var(--cell) + 2px) - 0.88px),
+                transparent        calc(4 * (var(--cell) + 2px) - 1.12px),
+                var(--center-line) calc(4 * (var(--cell) + 2px) - 1.12px),
+                var(--center-line) calc(7 * (var(--cell) + 2px) - 0.88px),
+                transparent        calc(7 * (var(--cell) + 2px) - 0.88px),
+                transparent        calc(9 * (var(--cell) + 2px) - 1.12px),
+                var(--center-line) calc(9 * (var(--cell) + 2px) - 1.12px),
+                var(--center-line) 100%
             );
             z-index: 5;
             pointer-events: none;
