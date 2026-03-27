@@ -1364,7 +1364,7 @@
                 color: var(--text-muted);
                 cursor: pointer;
             }
-            .mgb-zoom-group, .mgb-nav-group {
+            .mgb-nav-group {
                 display: flex;
                 align-items: center;
                 gap: 5px;
@@ -2310,10 +2310,6 @@
                 <!-- Mobile game bar: resign + review nav -->
                 <div id="mobile-game-bar" class="hidden">
                     <button class="mgb-resign" onclick="mobileResignFlow()">Resign</button>
-                    <div class="mgb-zoom-group">
-                        <button class="mgb-btn" onclick="mobileZoom(-1)" title="Zoom out">−</button>
-                        <button class="mgb-btn" onclick="mobileZoom(1)"  title="Zoom in">+</button>
-                    </div>
                     <div class="mgb-nav-group">
                         <button class="mgb-btn" onclick="gotoReview(0)" title="First">⏮</button>
                         <button class="mgb-btn" onclick="mobilePrevMove()" title="Back">◀</button>
@@ -3165,11 +3161,67 @@ function closeMobileReview() {
     if (!gameOver && !isReplayMode) returnToLive();
 }
 
-let _mobileCellSize = 32;
-function mobileZoom(dir) {
-    _mobileCellSize = Math.max(20, Math.min(44, _mobileCellSize + dir * 4));
-    document.documentElement.style.setProperty('--cell', _mobileCellSize + 'px');
+// ── Mobile board pinch-to-zoom ───────────────────────────────
+let _bz = { s: 1, x: 0, y: 0 };
+let _bzPinch0 = 0, _bzPinchS0 = 1;
+let _bzPan0 = null, _bzPanBase = { x: 0, y: 0 };
+let _bzLastTap = 0;
+
+function _bzApply(board) {
+    if (!board) return;
+    const inv = board.classList.contains('inverted');
+    board.style.transform = `translateX(calc(-50% + ${_bz.x}px)) translateY(${_bz.y}px) scale(${_bz.s})${inv ? ' rotate(180deg)' : ''}`;
 }
+function _bzReset(board) {
+    _bz = { s: 1, x: 0, y: 0 };
+    _bzApply(board);
+}
+function _bzPinchDist(t1, t2) {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+
+document.querySelectorAll('.board-wrap').forEach(wrap => {
+    wrap.addEventListener('touchstart', e => {
+        if (window.innerWidth > 768) return;
+        const board = wrap.querySelector('#game-board, #online-preview-board');
+        if (e.touches.length === 2) {
+            _bzPinch0 = _bzPinchDist(e.touches[0], e.touches[1]);
+            _bzPinchS0 = _bz.s;
+        } else if (e.touches.length === 1) {
+            const now = Date.now();
+            if (now - _bzLastTap < 300) { _bzReset(board); }
+            _bzLastTap = now;
+            if (_bz.s > 1.05) {
+                _bzPan0 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                _bzPanBase = { x: _bz.x, y: _bz.y };
+            }
+        }
+    }, { passive: true });
+
+    wrap.addEventListener('touchmove', e => {
+        if (window.innerWidth > 768) return;
+        const board = wrap.querySelector('#game-board, #online-preview-board');
+        if (e.touches.length === 2 && _bzPinch0) {
+            e.preventDefault();
+            _bz.s = Math.max(0.6, Math.min(3.5, _bzPinchS0 * _bzPinchDist(e.touches[0], e.touches[1]) / _bzPinch0));
+            _bzApply(board);
+        } else if (e.touches.length === 1 && _bz.s > 1.05 && _bzPan0) {
+            e.preventDefault();
+            _bz.x = _bzPanBase.x + e.touches[0].clientX - _bzPan0.x;
+            _bz.y = _bzPanBase.y + e.touches[0].clientY - _bzPan0.y;
+            _bzApply(board);
+        }
+    }, { passive: false });
+
+    wrap.addEventListener('touchend', e => {
+        if (e.touches.length === 0) _bzPan0 = null;
+        if (e.touches.length < 2) _bzPinch0 = 0;
+        if (e.touches.length === 0 && _bz.s < 0.85) {
+            const board = wrap.querySelector('#game-board, #online-preview-board');
+            _bzReset(board);
+        }
+    }, { passive: true });
+});
 
 function mobilePrevMove() {
     if (reviewIndex === null) gotoReview(moveHistory.length - 1);
@@ -4546,6 +4598,7 @@ function startGame() {
     document.getElementById('ingame-controls').classList.remove('hidden');
     document.getElementById('history-panel').classList.remove('hidden');
     document.getElementById('mobile-game-bar').classList.remove('hidden');
+    _bzReset(document.getElementById('game-board'));
     // Populate static info
     currentDifficulty = document.getElementById('diff-select').value;
     document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
