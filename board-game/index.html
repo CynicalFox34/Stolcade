@@ -1364,7 +1364,7 @@
                 color: var(--text-muted);
                 cursor: pointer;
             }
-            .mgb-nav-group {
+            .mgb-zoom-group, .mgb-nav-group {
                 display: flex;
                 align-items: center;
                 gap: 5px;
@@ -2310,6 +2310,10 @@
                 <!-- Mobile game bar: resign + review nav -->
                 <div id="mobile-game-bar" class="hidden">
                     <button class="mgb-resign" onclick="mobileResignFlow()">Resign</button>
+                    <div class="mgb-zoom-group">
+                        <button class="mgb-btn" onclick="mobileZoom(-1)" title="Zoom out">−</button>
+                        <button class="mgb-btn" onclick="mobileZoom(1)"  title="Zoom in">+</button>
+                    </div>
                     <div class="mgb-nav-group">
                         <button class="mgb-btn" onclick="gotoReview(0)" title="First">⏮</button>
                         <button class="mgb-btn" onclick="mobilePrevMove()" title="Back">◀</button>
@@ -3159,6 +3163,12 @@ function openMobileReview() {
 function closeMobileReview() {
     document.getElementById('mobile-review-bar').classList.add('hidden');
     if (!gameOver && !isReplayMode) returnToLive();
+}
+
+let _mobileCellSize = 32;
+function mobileZoom(dir) {
+    _mobileCellSize = Math.max(20, Math.min(44, _mobileCellSize + dir * 4));
+    document.documentElement.style.setProperty('--cell', _mobileCellSize + 'px');
 }
 
 function mobilePrevMove() {
