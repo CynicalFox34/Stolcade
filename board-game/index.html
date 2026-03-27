@@ -1300,7 +1300,6 @@
                 height: calc(10 * var(--cell) + 9 * 2px + 6px);
                 overflow: hidden;
                 overflow-y: scroll;
-                scroll-snap-type: y mandatory;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
             }
@@ -1317,15 +1316,13 @@
                 transform: translateX(-50%) rotate(180deg);
             }
 
-            /* Snap panels: invisible divs that create the two snap positions */
+            /* Spacer panels: create scroll height for the absolutely-positioned board */
             .board-snap-top, .board-snap-bot { display: block; }
             .board-snap-top {
                 height: calc(10 * var(--cell) + 9 * 2px + 6px + 2px);
-                scroll-snap-align: start;
             }
             .board-snap-bot {
                 height: calc(10 * var(--cell) + 9 * 2px + 6px);
-                scroll-snap-align: start;
             }
 
             /* Swipe indicator dots */
