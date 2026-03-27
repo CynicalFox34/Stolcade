@@ -1232,17 +1232,17 @@
                 overflow: hidden;
             }
 
-            /* Board cell size on mobile — 28 px gives a bit more breathing room */
-            :root { --cell: 28px; }
+            /* Board cell size on mobile — 26px keeps the board compact */
+            :root { --cell: 26px; }
 
-            /* Recalculate center-line gradient for 28 px cells (col*30px, gap=2px fixed) */
+            /* Recalculate center-line gradient for 26px cells (gap=2px) */
             #game-board::after, #online-preview-board::after {
                 background: linear-gradient(90deg,
-                    var(--center-line) 0,        var(--center-line) 58.24px,
-                    transparent        58.24px,  transparent        119.76px,
-                    var(--center-line) 119.76px, var(--center-line) 208.24px,
-                    transparent        208.24px, transparent        269.76px,
-                    var(--center-line) 269.76px, var(--center-line) 100%
+                    var(--center-line) 0,         var(--center-line) 54.24px,
+                    transparent        54.24px,   transparent        111.76px,
+                    var(--center-line) 111.76px,  var(--center-line) 194.24px,
+                    transparent        194.24px,  transparent        251.76px,
+                    var(--center-line) 251.76px,  var(--center-line) 100%
                 );
             }
 
@@ -1286,16 +1286,17 @@
             .history-panel:not(.hidden) { display: flex !important; }
             .history-panel.mobile-open { transform: translateY(0); }
 
-            /* ── Board area ── */
+            /* ── Board area: scrolls when board taller than available space ── */
             .board-area {
                 flex: 1;
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
-                align-items: stretch;
-                justify-content: center;
+                align-items: center;
+                overflow-y: auto;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
                 gap: 0;
-                overflow: hidden;
             }
             .board-topbar {
                 width: 100%;
@@ -1305,70 +1306,21 @@
                 border-left: none;
                 border-right: none;
                 border-top: none;
+                flex-shrink: 0;
             }
 
-            /* Show snap panels on mobile */
-            .board-snap-top, .board-snap-bot { display: block; }
-
-            /* ── Split/swipe board: shows 10 rows + center line ── */
+            /* ── Board wrap: simple centering, no snap scroll ── */
             .board-wrap {
-                /* CRITICAL: display:block so snap panels stack vertically */
-                display: block;
-                position: relative;
-                width: 100%;
-                /* +7px extra so center line (at 50% of 690px ≈ 342px) is visible in both halves */
-                height: calc(10 * var(--cell) + 9 * 2px + 6px + 7px);
-                overflow: hidden;
-                overflow-y: scroll;
-                scroll-snap-type: y mandatory;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                /* Depth shadow at cut edges — suggests board continues beyond view */
-                box-shadow: inset 0 -14px 18px rgba(0,0,0,0.5),
-                            inset 0  14px 18px rgba(0,0,0,0.5);
-            }
-            .board-wrap::-webkit-scrollbar { display: none; }
-
-            #btn-hist-close    { display: block !important; }
-
-            /* Board absolutely positioned so snap panels control scroll height */
-            #game-board, #online-preview-board {
-                position: absolute;
-                top: 0;
-                left: 50%;
-                transform: translateX(-50%);
-            }
-            /* Inverted board must keep the translateX centering */
-            #game-board.inverted {
-                transform: translateX(-50%) rotate(180deg);
-            }
-            /* Snap panels — scroll positions so center line is visible in both halves
-               snap-top = board_height - wrap_height = (20*cell+19*2+12) - (10*cell+9*2+13)
-                        = 10*cell + 10*2 + 12 - 13 = 10*cell + 19px  (=339px @ 32px cells)
-               snap-bot = same as wrap height (=351px) so max scrollTop = 339 exactly */
-            .board-snap-top {
-                height: calc(10 * var(--cell) + 19px);
-                scroll-snap-align: start;
-            }
-            .board-snap-bot {
-                height: calc(10 * var(--cell) + 9 * 2px + 6px + 7px);
-                scroll-snap-align: start;
-            }
-
-            /* Swipe hint dots below board */
-            .board-swipe-hint {
                 display: flex;
-                align-items: center;
-                gap: 5px;
-                padding: 4px 0 2px;
+                justify-content: center;
+                padding: 0.5rem 0;
+                flex-shrink: 0;
             }
-            .bhi-dot {
-                width: 7px; height: 7px;
-                border-radius: 50%;
-                background: var(--border-inner);
-                transition: background 0.2s;
-            }
-            .bhi-dot.active { background: var(--accent); }
+
+            /* Hide ingame controls (resign, review, ···) completely on mobile */
+            #ingame-controls { display: none !important; }
+            #resign-confirm-modal { display: none !important; }
+            #mobile-review-bar    { display: none !important; }
 
             /* ── Compact player cards (horizontal bars) ── */
             #card-you, #card-bot,
@@ -1436,10 +1388,7 @@
             #pregame-controls select { flex: 1; min-width: 110px; }
             #pregame-controls .btn  { width: auto; padding: 0.5rem 1rem; }
 
-            /* Hide ingame controls entirely on mobile — just show the player cards */
-            #ingame-controls { display: none !important; }
-
-            /* ── Mobile review bar (unused on mobile but keep structure) ── */
+            /* ── Mobile review bar (dead code on mobile, kept for structure) ── */
             .mrb-btn {
                 width: 36px; height: 36px;
                 border-radius: 8px;
