@@ -1344,8 +1344,23 @@
 
             /* Hide ingame controls (resign, review, ···) completely on mobile */
             #ingame-controls { display: none !important; }
-            #resign-confirm-modal { display: none !important; }
             #mobile-review-bar    { display: none !important; }
+            /* Resign confirm modal — hidden by default, shown via JS */
+            #resign-confirm-modal.hidden { display: none !important; }
+            #resign-confirm-modal:not(.hidden) {
+                display: flex !important;
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                z-index: 9999; background: rgba(0,0,0,0.5);
+                align-items: center; justify-content: center;
+            }
+            .resign-card {
+                background: var(--bg-secondary); border-radius: 14px;
+                padding: 1.5rem; text-align: center; width: 260px;
+            }
+            .resign-card h3 { margin: 0 0 0.5rem; }
+            .resign-card p { font-size: 0.85rem; color: var(--text-muted); margin: 0 0 1rem; }
+            .resign-card-btns { display: flex; gap: 0.5rem; }
+            .resign-card-btns .btn { flex: 1; }
 
             /* ── Mobile game bar ── */
             #mobile-game-bar:not(.hidden) {
