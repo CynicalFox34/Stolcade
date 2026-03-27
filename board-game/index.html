@@ -1237,9 +1237,8 @@
                 flex-direction: column;
             }
 
-            /* Board cell size: fit the full 20-row board in the available height */
-            :root { --cell: clamp(18px, calc((100vh - 260px) / 20), 32px); }
-            :root { --cell: clamp(18px, calc((100svh - 260px) / 20), 32px); }
+            /* Board cell size: 32px — shows 10 rows at a time in the swipe viewport */
+            :root { --cell: 32px; }
 
 
             /* Center-line gradient: universal calc()-based formula */
@@ -1277,37 +1276,15 @@
             #card-you,        #online-card-you  { order: 2; }
             .game-controls                      { order: 3; }
 
-            /* History panel becomes a slide-up sheet on mobile */
-            .history-panel {
-                position: fixed !important;
-                left: 0; right: 0;
-                bottom: 56px;
-                max-height: 60vh;
-                border-radius: 12px 12px 0 0;
-                border: none;
-                box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
-                overflow-y: auto;
-                margin: 0 !important;
-                min-width: unset !important;
-                padding: 1rem;
-                gap: 0.5rem;
-                z-index: 100;
-                transform: translateY(110%);
-                transition: transform 0.25s ease;
-            }
-            .history-panel.hidden { display: none !important; }
-            .history-panel:not(.hidden) { display: flex !important; }
-            .history-panel.mobile-open { transform: translateY(0); }
+            /* Hide history panel entirely on mobile */
+            .history-panel { display: none !important; }
 
-            /* ── Board area: no scroll — board is sized to fit ── */
+            /* ── Board area: fixed height from board-wrap, no flex stretching ── */
             .board-area {
-                flex: 1;
-                min-height: 0;
+                flex-shrink: 0;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                overflow: hidden;
+                align-items: stretch;
                 gap: 0;
             }
             .board-topbar {
@@ -1321,11 +1298,51 @@
                 flex-shrink: 0;
             }
 
-            /* ── Board wrap: simple centering ── */
+            /* ── Board wrap: 10-row swipe viewport ── */
             .board-wrap {
-                display: flex;
-                justify-content: center;
+                display: block;
+                width: 100%;
+                position: relative;
+                height: calc(10 * var(--cell) + 9 * 2px + 6px);
+                overflow: hidden;
+                overflow-y: scroll;
+                scroll-snap-type: y mandatory;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
             }
+            .board-wrap::-webkit-scrollbar { display: none; }
+
+            /* Board absolutely positioned — snap panels drive scroll height */
+            #game-board, #online-preview-board {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            #game-board.inverted {
+                transform: translateX(-50%) rotate(180deg);
+            }
+
+            /* Snap panels: invisible divs that create the two snap positions */
+            .board-snap-top, .board-snap-bot { display: block; }
+            .board-snap-top {
+                height: calc(10 * var(--cell) + 9 * 2px + 6px + 2px);
+                scroll-snap-align: start;
+            }
+            .board-snap-bot {
+                height: calc(10 * var(--cell) + 9 * 2px + 6px);
+                scroll-snap-align: start;
+            }
+
+            /* Swipe indicator dots */
+            .board-swipe-hint { display: flex; gap: 5px; padding: 4px 0 2px; justify-content: center; }
+            .bhi-dot {
+                width: 7px; height: 7px;
+                border-radius: 50%;
+                background: var(--border-inner);
+                transition: background 0.2s;
+            }
+            .bhi-dot.active { background: var(--accent); }
 
             /* Hide ingame controls (resign, review, ···) completely on mobile */
             #ingame-controls { display: none !important; }
