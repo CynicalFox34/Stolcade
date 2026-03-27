@@ -4418,18 +4418,15 @@ function initGame() {
         }
 
     // Border overlays around each 2×2 blocked hole group
-    // Read the actual rendered cell width (getBoundingClientRect forces reflow,
-    // returning the true px size regardless of whether --cell is a clamp() string)
-    const _firstCell = board.querySelector('.cell');
-    const _cellSz = _firstCell ? _firstCell.getBoundingClientRect().width : 38;
-    const _pitch  = _cellSz + 2;
+    // Use calc(var(--cell)) so the browser resolves the size at paint time —
+    // avoids JS timing issues where the cell hasn't laid out yet.
     [2, 7].forEach(startCol => {
         const overlay = document.createElement('div');
         overlay.className = 'blocked-overlay';
-        overlay.style.left   = (3 + startCol * _pitch) + 'px';
-        overlay.style.top    = (3 + 9 * _pitch) + 'px';
-        overlay.style.width  = (_cellSz * 2 + 2) + 'px';
-        overlay.style.height = (_cellSz * 2 + 2) + 'px';
+        overlay.style.left   = `calc(3px + ${startCol} * (var(--cell) + 2px))`;
+        overlay.style.top    = `calc(3px + 9 * (var(--cell) + 2px))`;
+        overlay.style.width  = `calc(2 * var(--cell) + 2px)`;
+        overlay.style.height = `calc(2 * var(--cell) + 2px)`;
         board.appendChild(overlay);
     });
 
@@ -5229,17 +5226,14 @@ function initOnlinePreviewBoard() {
             board.appendChild(cell);
         }
     }
-    // Blocked hole overlays — read actual rendered cell width for correct positioning at any size
-    const _oFirstCell = board.querySelector('.cell');
-    const _oCellSz = _oFirstCell ? _oFirstCell.getBoundingClientRect().width : 38;
-    const _oPitch  = _oCellSz + 2;
+    // Blocked hole overlays — calc(var(--cell)) resolves at paint time, always correct
     [2, 7].forEach(sc => {
         const ov = document.createElement('div');
         ov.className = 'blocked-overlay';
-        ov.style.left   = (3 + sc * _oPitch) + 'px';
-        ov.style.top    = (3 + 9 * _oPitch) + 'px';
-        ov.style.width  = (_oCellSz * 2 + 2) + 'px';
-        ov.style.height = (_oCellSz * 2 + 2) + 'px';
+        ov.style.left   = `calc(3px + ${sc} * (var(--cell) + 2px))`;
+        ov.style.top    = `calc(3px + 9 * (var(--cell) + 2px))`;
+        ov.style.width  = `calc(2 * var(--cell) + 2px)`;
+        ov.style.height = `calc(2 * var(--cell) + 2px)`;
         board.appendChild(ov);
     });
 }
