@@ -4418,8 +4418,10 @@ function initGame() {
         }
 
     // Border overlays around each 2×2 blocked hole group
-    // Read --cell dynamically so overlays position correctly at any cell size
-    const _cellSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 38;
+    // Read the actual rendered cell width (getBoundingClientRect forces reflow,
+    // returning the true px size regardless of whether --cell is a clamp() string)
+    const _firstCell = board.querySelector('.cell');
+    const _cellSz = _firstCell ? _firstCell.getBoundingClientRect().width : 38;
     const _pitch  = _cellSz + 2;
     [2, 7].forEach(startCol => {
         const overlay = document.createElement('div');
@@ -5227,8 +5229,9 @@ function initOnlinePreviewBoard() {
             board.appendChild(cell);
         }
     }
-    // Blocked hole overlays — use actual --cell size so they position correctly at any cell size
-    const _oCellSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 38;
+    // Blocked hole overlays — read actual rendered cell width for correct positioning at any size
+    const _oFirstCell = board.querySelector('.cell');
+    const _oCellSz = _oFirstCell ? _oFirstCell.getBoundingClientRect().width : 38;
     const _oPitch  = _oCellSz + 2;
     [2, 7].forEach(sc => {
         const ov = document.createElement('div');
