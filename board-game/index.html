@@ -1139,6 +1139,10 @@
         .rnav-info {
             display: none;
         }
+        /* ── Mobile game bar (desktop: hidden) ── */
+        #mobile-game-bar { display: none; }
+        #mobile-game-bar.hidden { display: none !important; }
+
         /* ════════════════════════════════════════════════
            BOTTOM NAV  (desktop: hidden; mobile: shown)
            ════════════════════════════════════════════════ */
@@ -1339,6 +1343,54 @@
             #ingame-controls { display: none !important; }
             #resign-confirm-modal { display: none !important; }
             #mobile-review-bar    { display: none !important; }
+
+            /* ── Mobile game bar ── */
+            #mobile-game-bar:not(.hidden) {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 0.6rem;
+                height: 38px;
+                border-top: 1px solid var(--border-inner);
+                flex-shrink: 0;
+            }
+            .mgb-resign {
+                font-size: 0.72rem;
+                font-weight: 600;
+                padding: 0.2rem 0.55rem;
+                border-radius: 6px;
+                background: none;
+                border: 1px solid var(--border-inner);
+                color: var(--text-muted);
+                cursor: pointer;
+                letter-spacing: 0.02em;
+            }
+            .mgb-nav-group {
+                display: flex;
+                align-items: center;
+                gap: 3px;
+            }
+            .mgb-btn {
+                width: 28px; height: 28px;
+                border-radius: 6px;
+                background: none;
+                border: 1px solid var(--border-inner);
+                color: var(--text-secondary);
+                font-size: 0.65rem;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0;
+            }
+            .mgb-count {
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: var(--text-secondary);
+                min-width: 36px;
+                text-align: center;
+                font-variant-numeric: tabular-nums;
+                padding: 0 2px;
+            }
+            .mgb-count.live { color: var(--accent); }
 
             /* ── Compact player cards (horizontal bars) ── */
             #card-you, #card-bot,
@@ -2257,6 +2309,17 @@
                     <div class="bhi-dot" id="bhi-opp"></div>
                     <div class="bhi-dot active" id="bhi-you"></div>
                 </div>
+                <!-- Mobile game bar: resign + review nav -->
+                <div id="mobile-game-bar" class="hidden">
+                    <button class="mgb-resign" onclick="mobileResignFlow()">Resign</button>
+                    <div class="mgb-nav-group">
+                        <button class="mgb-btn" onclick="gotoReview(0)" title="First">⏮</button>
+                        <button class="mgb-btn" onclick="mobilePrevMove()" title="Back">◀</button>
+                        <span class="mgb-count" id="mgb-count">—</span>
+                        <button class="mgb-btn" onclick="mobileNextMove()" title="Forward">▶</button>
+                        <button class="mgb-btn" onclick="returnToLive()" title="Latest">⏭</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Right panel: move history -->
@@ -3098,6 +3161,28 @@ function openMobileReview() {
 function closeMobileReview() {
     document.getElementById('mobile-review-bar').classList.add('hidden');
     if (!gameOver && !isReplayMode) returnToLive();
+}
+
+function mobilePrevMove() {
+    if (reviewIndex === null) gotoReview(moveHistory.length - 1);
+    else if (reviewIndex > 0) gotoReview(reviewIndex - 1);
+}
+function mobileNextMove() {
+    if (reviewIndex === null) return;
+    if (reviewIndex >= moveHistory.length - 1) returnToLive();
+    else gotoReview(reviewIndex + 1);
+}
+function updateMobileGameBar() {
+    const count = document.getElementById('mgb-count');
+    if (!count) return;
+    const total = moveHistory.length;
+    if (reviewIndex === null) {
+        count.textContent = total > 0 ? 'Live' : '—';
+        count.classList.toggle('live', total > 0);
+    } else {
+        count.textContent = (reviewIndex + 1) + '/' + total;
+        count.classList.remove('live');
+    }
 }
 
 function updateMobileReviewBar() {
@@ -4452,6 +4537,7 @@ function startGame() {
     document.getElementById('pregame-controls').classList.add('hidden');
     document.getElementById('ingame-controls').classList.remove('hidden');
     document.getElementById('history-panel').classList.remove('hidden');
+    document.getElementById('mobile-game-bar').classList.remove('hidden');
     // Populate static info
     currentDifficulty = document.getElementById('diff-select').value;
     document.getElementById('ingame-color').textContent = humanPlayer === 1 ? 'Gray (P1)' : 'Orange (P2)';
@@ -4605,6 +4691,7 @@ function renderBoard() {
             }
         }
     }
+    updateMobileGameBar();
 }
 
 // ─── EXECUTE MOVE ────────────────────────────────────────────
