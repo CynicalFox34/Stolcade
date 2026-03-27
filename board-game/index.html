@@ -1507,10 +1507,20 @@
                 box-shadow: none;
                 border-top: 1px solid var(--border-inner);
             }
-            /* Hide verbose labels and friends invite section on mobile */
+            /* Hide verbose labels on mobile */
             #online-controls-idle > div:first-child      { display: none; } /* "Game Type" label */
-            #online-controls-idle > div:last-child        { display: none; } /* friends invite */
             #online-rated-elo-hint                        { display: none; }
+            /* Compact friends invite on mobile */
+            #online-controls-idle > div:last-child        {
+                width: 100%; margin-top: 0.3rem; padding-top: 0.5rem;
+                border-top: 1px solid var(--border-inner);
+            }
+            #online-controls-idle > div:last-child > div:first-child {
+                font-size: 0.65rem; margin-bottom: 0.3rem;
+            }
+            .online-friends-scroll {
+                max-height: 120px;
+            }
             #online-controls-idle > div:nth-child(2)      { flex: 0 0 auto; }
             #online-controls-idle > button.btn            { flex: 1; margin: 0; }
             #online-controls-searching > div:first-child  { flex: 1; margin: 0; }
