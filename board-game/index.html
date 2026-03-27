@@ -4720,14 +4720,11 @@ function renderBoard() {
         for (let c = 0; c < COLS; c++) {
             const cell = gameBoard ? gameBoard.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`) : null;
             if (!cell) continue;
-            cell.className = 'cell';
+            // Only remove dynamic state classes — never touch the static position classes
+            // (half-top/half-bot/col-mid/goal-p1/goal-p2/blocked) so the background never flickers
+            cell.classList.remove('selected', 'valid-empty', 'valid-capture');
             delete cell.dataset.displacedAllies;
-            if (isBlocked(r, c)) { cell.classList.add('blocked'); continue; }
-            if (c === MID_COL)  cell.classList.add('col-mid');
-            else if (r < 10)    cell.classList.add('half-top');
-            else                cell.classList.add('half-bot');
-            if (r === P1_GOAL)  cell.classList.add('goal-p1');
-            if (r === P2_GOAL)  cell.classList.add('goal-p2');
+            if (isBlocked(r, c)) continue;
 
             if (!isReview) {
                 const matchingMove = validMoves.find(m => m.target[0]===r && m.target[1]===c);
