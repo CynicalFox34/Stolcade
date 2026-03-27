@@ -7225,6 +7225,14 @@ async function authResetPassword() {
 }
 
 async function initAuth() {
+    // Localhost: skip auth entirely — no backend to authenticate against
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('landing-page').classList.add('hidden');
+        applyProfile();
+        updateOverviewStats();
+        return;
+    }
     const token = getAuthToken();
     if (token) {
         try {
