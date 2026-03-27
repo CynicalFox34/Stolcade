@@ -1230,19 +1230,27 @@
             #page-play, #page-online {
                 padding: 0;
                 overflow: hidden;
+                height: 100%;
             }
 
-            /* Board cell size on mobile — 26px keeps the board compact */
-            :root { --cell: 26px; }
+            /* Board cell size: fit the full 20-row board in the available height.
+               260px = topbar (~44) + bottom-nav (56) + player cards (~2×46) + board
+               internal padding/gaps (~50). Clamp keeps it between 18–32px. */
+            :root { --cell: clamp(18px, calc((100svh - 260px) / 20), 32px); }
 
-            /* Recalculate center-line gradient for 26px cells (gap=2px) */
+            /* Center-line gradient: universal calc()-based formula */
             #game-board::after, #online-preview-board::after {
                 background: linear-gradient(90deg,
-                    var(--center-line) 0,         var(--center-line) 54.24px,
-                    transparent        54.24px,   transparent        111.76px,
-                    var(--center-line) 111.76px,  var(--center-line) 194.24px,
-                    transparent        194.24px,  transparent        251.76px,
-                    var(--center-line) 251.76px,  var(--center-line) 100%
+                    var(--center-line) 0,
+                    var(--center-line) calc(2 * var(--cell) + 2.24px),
+                    transparent        calc(2 * var(--cell) + 2.24px),
+                    transparent        calc(4 * var(--cell) + 7.76px),
+                    var(--center-line) calc(4 * var(--cell) + 7.76px),
+                    var(--center-line) calc(7 * var(--cell) + 12.24px),
+                    transparent        calc(7 * var(--cell) + 12.24px),
+                    transparent        calc(9 * var(--cell) + 17.76px),
+                    var(--center-line) calc(9 * var(--cell) + 17.76px),
+                    var(--center-line) 100%
                 );
             }
 
@@ -1286,16 +1294,15 @@
             .history-panel:not(.hidden) { display: flex !important; }
             .history-panel.mobile-open { transform: translateY(0); }
 
-            /* ── Board area: scrolls when board taller than available space ── */
+            /* ── Board area: no scroll — board is sized to fit ── */
             .board-area {
                 flex: 1;
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                overflow-y: auto;
-                overflow-x: hidden;
-                -webkit-overflow-scrolling: touch;
+                justify-content: center;
+                overflow: hidden;
                 gap: 0;
             }
             .board-topbar {
@@ -1309,12 +1316,10 @@
                 flex-shrink: 0;
             }
 
-            /* ── Board wrap: simple centering, no snap scroll ── */
+            /* ── Board wrap: simple centering ── */
             .board-wrap {
                 display: flex;
                 justify-content: center;
-                padding: 0.5rem 0;
-                flex-shrink: 0;
             }
 
             /* Hide ingame controls (resign, review, ···) completely on mobile */
@@ -4408,13 +4413,16 @@ function initGame() {
         }
 
     // Border overlays around each 2×2 blocked hole group
+    // Read --cell dynamically so overlays position correctly at any cell size
+    const _cellSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 38;
+    const _pitch  = _cellSz + 2;
     [2, 7].forEach(startCol => {
         const overlay = document.createElement('div');
         overlay.className = 'blocked-overlay';
-        overlay.style.left = (3 + startCol * 40) + 'px';
-        overlay.style.top  = (3 + 9 * 40) + 'px';
-        overlay.style.width  = '78px';
-        overlay.style.height = '78px';
+        overlay.style.left   = (3 + startCol * _pitch) + 'px';
+        overlay.style.top    = (3 + 9 * _pitch) + 'px';
+        overlay.style.width  = (_cellSz * 2 + 2) + 'px';
+        overlay.style.height = (_cellSz * 2 + 2) + 'px';
         board.appendChild(overlay);
     });
 
@@ -5213,13 +5221,16 @@ function initOnlinePreviewBoard() {
             board.appendChild(cell);
         }
     }
-    // Blocked hole overlays
+    // Blocked hole overlays — use actual --cell size so they position correctly at any cell size
+    const _oCellSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 38;
+    const _oPitch  = _oCellSz + 2;
     [2, 7].forEach(sc => {
         const ov = document.createElement('div');
         ov.className = 'blocked-overlay';
-        ov.style.left  = (3 + sc * 40) + 'px';
-        ov.style.top   = (3 + 9 * 40) + 'px';
-        ov.style.width = ov.style.height = '78px';
+        ov.style.left   = (3 + sc * _oPitch) + 'px';
+        ov.style.top    = (3 + 9 * _oPitch) + 'px';
+        ov.style.width  = (_oCellSz * 2 + 2) + 'px';
+        ov.style.height = (_oCellSz * 2 + 2) + 'px';
         board.appendChild(ov);
     });
 }
