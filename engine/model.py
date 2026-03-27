@@ -1,13 +1,15 @@
 """
 Stolcade neural network — combined policy + value head.
-Input:  (batch, 10, 20, 11) board tensor
-Output: value scalar in [-1, 1]  (1 = current player wins)
-        (Policy head can be added later for MCTS; for now we use value-only TD training)
+Input:  (batch, 12, 20, 11) board tensor
+Output: policy logits (batch, 1100) — 880 regular (cell*4 dirs) + 220 veylant targets
+        value scalar in [-1, 1]  (1 = current player wins)
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+POLICY_SIZE = 1100  # 880 regular (220 cells * 4 dirs) + 220 veylant targets
 
 class ResBlock(nn.Module):
     def __init__(self, channels):
@@ -33,11 +35,10 @@ class StokcadeNet(nn.Module):
         # Residual tower
         self.res_tower = nn.Sequential(*[ResBlock(channels) for _ in range(res_blocks)])
 
-        # Policy head (outputs probability distribution over the board)
+        # Policy head: source+direction for regular, target for veylant
         self.pol_conv  = nn.Conv2d(channels, 32, 1, bias=False)
         self.pol_bn    = nn.BatchNorm2d(32)
-        # We output a scalar for every cell (20x11) representing move "desirability"
-        self.pol_linear = nn.Linear(32 * 20 * 11, 20 * 11)
+        self.pol_linear = nn.Linear(32 * 20 * 11, POLICY_SIZE)
 
         # Value head (outputs scalar [-1, 1])
         self.val_conv  = nn.Conv2d(channels, 1, 1, bias=False)
@@ -53,12 +54,12 @@ class StokcadeNet(nn.Module):
         # Policy head
         p = F.relu(self.pol_bn(self.pol_conv(x)))
         p = p.flatten(1)
-        p = self.pol_linear(p)  # Logits for target squares
+        p = self.pol_linear(p)  # (B, 1100)
 
         # Value head
         v = F.relu(self.val_bn(self.val_conv(x)))
         v = v.flatten(1)
-        v = F.elu(self.val_fc1(v))       # ELU allows negative values (ReLU was clipping them)
+        v = F.elu(self.val_fc1(v))
         v = torch.tanh(self.val_fc2(v))  # [-1, 1]
 
-        return p, v  # (B, 220), (B,)
+        return p, v

@@ -21,7 +21,7 @@ import numpy as np
 from collections import deque
 
 from game import GameState, did_cross, P1_GOAL, P2_GOAL, ROWS, COLS, tiebreak_winner
-from model import StokcadeNet
+from model import StokcadeNet, POLICY_SIZE
 from minimax import minimax_move, _board_key
 
 # ── Config ───────────────────────────────────────────────────
@@ -31,12 +31,12 @@ RES_BLOCKS      = 12
 LR              = 3e-4
 BATCH_SIZE      = 256
 REPLAY_SIZE     = 50_000
-GAMES_PER_ITER  = 5       # MCTS games are higher quality than depth-1
-TRAIN_STEPS     = 80
+GAMES_PER_ITER  = 10      # was 5 — more data per iter, faster value learning
+TRAIN_STEPS     = 150     # was 80 — more gradient steps per iter
 EVAL_EVERY      = 5
-EVAL_GAMES      = 8
+EVAL_GAMES      = 20      # was 8 — larger sample for reliable eval signal
 WIN_THRESHOLD   = 0.55
-MAX_MOVES       = 90
+MAX_MOVES       = 150     # was 90 — more room for decisive wins
 WARMUP_ITERS    = 3       # Greedy-game warm-up iterations before MCTS begins
 ELO_BASE        = 1000.0
 ELO_K           = 32
@@ -57,6 +57,28 @@ REPETITION_PENALTY = 0.4    # Additive score penalty if move repeats a recent an
 FORWARD_BIAS       = 0.15   # Bonus for moves advancing toward goal; stall detection uses repetition not progress
 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
+# ── Policy encoding ──────────────────────────────────────────
+# Regular moves: (canon_from_cell * 4 + direction_index) → indices 0..879
+# Veylant moves: 880 + canon_target_cell → indices 880..1099
+DIR_MAP = {(-1,0): 0, (1,0): 1, (0,-1): 2, (0,1): 3}  # N, S, W, E
+
+def move_to_policy_index(from_r, from_c, move, current_player):
+    """Convert a move to a canonical policy index (player-relative coords)."""
+    flip = (current_player == 2)
+    fr = (ROWS - 1 - from_r) if flip else from_r
+    fc = from_c
+
+    if move.get('is_veylant_multi'):
+        tr, tc = move['target']
+        tr_canon = (ROWS - 1 - tr) if flip else tr
+        return 880 + tr_canon * 11 + tc
+    else:
+        dr, dc = move['dr'], move['dc']
+        if flip:
+            dr = -dr  # flip vertical direction in canonical space
+        d_idx = DIR_MAP[(dr, dc)]
+        return (fr * 11 + fc) * 4 + d_idx
 
 _log_f = open(LOG_FILE, 'a')
 class _Tee:
@@ -95,17 +117,6 @@ def greedy_move(gs):
         if score > best_score: best_score = score; best = (fr, fc, m)
     return best
 
-def total_progress(board):
-    """Stall detection: sum of all pieces' advancement (crossing included)."""
-    total = 0
-    for r in range(ROWS):
-        for c in range(COLS):
-            p = board[r][c]
-            if p:
-                goal = P1_GOAL if p.player == 1 else P2_GOAL
-                total += (ROWS - 1) - abs(r - goal)
-                if p.has_crossed: total += ROWS
-    return total
 
 # ── MCTS ─────────────────────────────────────────────────────
 class MCTSNode:
@@ -186,37 +197,29 @@ class MCTSNode:
 
     def expand(self, policy_logits):
         """
-        Create child nodes from policy logits (220-dim, unnormalized).
-        Priors are softmax over legal-move target squares (canonical coords).
-        Child game states are NOT computed here — they are lazily evaluated
-        the first time each child is selected during simulation.
+        Create child nodes from policy logits (1100-dim, unnormalized).
+        Priors are softmax over legal moves using source+direction/target encoding.
         """
         if self.moves is None:
             self.moves = self.gs.legal_moves()
         if not self.moves:
             return
         cp   = self.gs.current_player
-        flip = (cp == 2)
         goal = P1_GOAL if cp == 1 else P2_GOAL
 
-        idxs = [((ROWS-1-m[2]['target'][0]) if flip else m[2]['target'][0]) * 11
-                + m[2]['target'][1] for m in self.moves]
+        idxs = [move_to_policy_index(m[0], m[1], m[2], cp) for m in self.moves]
         logits = np.array([policy_logits[i] for i in idxs], dtype=np.float64)
         logits -= logits.max()
         priors  = np.exp(logits)
         priors /= priors.sum()
 
-        # same_player: True if this node's current_player keeps the turn (multi-action),
-        # False if the turn passes to the other player after this move.
         child_same_player = (self.gs.actions_left > 1)
 
         for i, move in enumerate(self.moves):
-            # Store the move only — game state computed lazily on first visit
             child = MCTSNode(prior=float(priors[i]), parent=self,
                              move=move, same_player=child_same_player)
             self.children.append(child)
 
-            # Forward bias: bonus for moves advancing a piece toward goal
             fr, fc = move[0], move[1]
             tr, tc = move[2]['target']
             self.child_biases.append(FORWARD_BIAS if abs(tr-goal) < abs(fr-goal) else 0.0)
@@ -269,9 +272,8 @@ def run_mcts(root_gs, net, n_sims=MCTS_SIMS, add_noise=True, temperature=1.0):
     root_policy = p_out[0].cpu().numpy()
 
     if add_noise and len(moves) > 0:
-        root_flip  = (root_gs.current_player == 2)
-        legal_idxs = [((ROWS-1-m[2]['target'][0]) if root_flip else m[2]['target'][0]) * 11
-                      + m[2]['target'][1] for m in moves]
+        cp = root_gs.current_player
+        legal_idxs = [move_to_policy_index(m[0], m[1], m[2], cp) for m in moves]
         noise      = np.random.dirichlet([DIRICHLET_ALPHA] * len(moves))
         for j, idx in enumerate(legal_idxs):
             root_policy[idx] = ((1 - DIRICHLET_EPS) * root_policy[idx]
@@ -345,17 +347,15 @@ def run_mcts(root_gs, net, n_sims=MCTS_SIMS, add_noise=True, temperature=1.0):
         sims_done += batch_sz
 
     # ── Extract visit-count policy and choose a move ─────────
-    pi           = np.zeros(220, dtype=np.float32)
+    pi           = np.zeros(POLICY_SIZE, dtype=np.float32)
     child_visits = np.array([c.N for c in root.children], dtype=np.float32)
     total_visits = child_visits.sum()
 
-    root_flip = (root_gs.current_player == 2)
+    cp = root_gs.current_player
     if total_visits > 0 and root.moves:
-        # Record pi using canonical row coordinates
         for j, move in enumerate(root.moves):
-            tr, tc  = move[2]['target']
-            canon_r = (ROWS - 1 - tr) if root_flip else tr
-            pi[canon_r * 11 + tc] += child_visits[j] / total_visits
+            idx = move_to_policy_index(move[0], move[1], move[2], cp)
+            pi[idx] += child_visits[j] / total_visits
 
         if temperature < 0.01:
             chosen_idx = int(np.argmax(child_visits))
@@ -368,106 +368,53 @@ def run_mcts(root_gs, net, n_sims=MCTS_SIMS, add_noise=True, temperature=1.0):
 
     # Fallback: uniform random
     if root.moves:
-        idx     = random.randrange(len(root.moves))
-        tr, tc  = root.moves[idx][2]['target']
-        canon_r = (ROWS - 1 - tr) if root_flip else tr
-        pi[canon_r * 11 + tc] = 1.0
+        idx = random.randrange(len(root.moves))
+        m   = root.moves[idx]
+        pi[move_to_policy_index(m[0], m[1], m[2], cp)] = 1.0
         return root.moves[idx], pi
 
     return None, None
 
 
 # ── Play one full game ────────────────────────────────────────
-def shaped_outcome(winner, player, board, outright=False):
-    """
-    Reward-shaped terminal outcome.
-    Outright win = ±1.0 (always dominates).
-    Tiebreak win = +0.4, tiebreak loss = -0.4.
-    Small progress bonus so the model prefers advanced positions at tiebreak,
-    but can never make a tiebreak look better than an outright win.
-    """
+def game_outcome(winner, player, outright=False):
+    """Clean value label: outright ±1.0, tiebreak ±0.5, draw 0."""
     if winner == 0:
-        base = 0.0
+        return 0.0
     elif outright:
-        base = 1.0 if winner == player else -1.0
+        return 1.0 if winner == player else -1.0
     else:
-        base = 0.4 if winner == player else -0.4
-
-    def progress_bonus(pl):
-        goal  = P1_GOAL if pl == 1 else P2_GOAL
-        bonus = 0.0
-        for r in range(ROWS):
-            for c in range(COLS):
-                p = board[r][c]
-                if p and p.player == pl:
-                    if p.has_crossed:      bonus += 0.01
-                    if abs(r - goal) == 0: bonus += 0.02
-        return bonus
-
-    bonus_me  = progress_bonus(player)
-    bonus_opp = progress_bonus(3 - player)
-    shaped    = base + (bonus_me - bonus_opp) * 0.15
-    return max(-1.0, min(1.0, shaped))
-
-
-def player_progress_score(board, player):
-    """
-    Per-step positional signal active from move 1.
-    Quadratic forward-progress for all pieces; bonus quadratic for crossed pieces.
-    Creates value variation within a game so MCTS can distinguish good from bad positions
-    even before any piece has crossed the midline.
-    """
-    goal    = P1_GOAL if player == 1 else P2_GOAL
-    midline = ROWS // 2
-    score   = 0.0
-    for r in range(ROWS):
-        for c in range(COLS):
-            p = board[r][c]
-            if p and p.player == player:
-                dist_to_goal = abs(r - goal)
-                forward      = (ROWS - 1 - dist_to_goal) / (ROWS - 1)
-                score       += forward ** 2
-                if p.has_crossed:
-                    score += 0.5 * (1.0 - dist_to_goal / midline) ** 2
-    return score
+        return 0.5 if winner == player else -0.5
 
 
 def play_game(net1, net2, max_moves=MAX_MOVES, swap_start=False, warmup=False, temperature=1.0):
     """
     Play one game and return (state, pi, value) training samples.
-
     warmup=True  → greedy play (no network needed), one-hot pi.
     warmup=False → MCTS play using net1/net2, visit-count pi.
-
-    Value label blends terminal shaped outcome (0.7) with per-step
-    positional cubic score (0.3) for direct forward-progress signal.
     """
     gs         = GameState()
     if swap_start:
         gs.current_player = 2
-    history    = []     # (tensor, pi, player, board_snapshot)
+    history    = []     # (tensor, pi, player)
     nets       = {1: net1, 2: net2}
     pos_counts = {}
 
     for _ in range(max_moves):
         if gs.is_terminal(): break
 
-        # Repetition detection (3-fold) — works correctly with FORWARD_BIAS
         key = (_board_key(gs.board), gs.current_player)
         pos_counts[key] = pos_counts.get(key, 0) + 1
         if pos_counts[key] >= 3: break
 
         player = gs.current_player
         tensor = gs.to_tensor()
-        board  = [row[:] for row in gs.board]  # snapshot for step reward
 
         if warmup or nets[player] is None:
             move = greedy_move(gs)
-            pi   = np.zeros(220, dtype=np.float32)
+            pi   = np.zeros(POLICY_SIZE, dtype=np.float32)
             if move:
-                tr, tc  = move[2]['target']
-                canon_r = (ROWS - 1 - tr) if player == 2 else tr
-                pi[canon_r * 11 + tc] = 1.0
+                pi[move_to_policy_index(move[0], move[1], move[2], player)] = 1.0
         else:
             result = run_mcts(gs, nets[player], n_sims=MCTS_SIMS,
                               add_noise=True, temperature=temperature)
@@ -475,27 +422,15 @@ def play_game(net1, net2, max_moves=MAX_MOVES, swap_start=False, warmup=False, t
             move, pi = result
 
         if move is None: break
-        history.append((tensor, pi, player, board))
+        history.append((tensor, pi, player))
         gs = gs.apply(*move)
 
-    winner = gs.winner or tiebreak_winner(gs.board)
-
-    # Value: undiscounted shaped outcome + small positional blend.
-    # All positions in a won game get the same sign (~+0.65); step provides
-    # small within-game variance (±0.15). MCTS needs a reliable win predictor,
-    # not discounted future reward — discounting collapses labels toward zero.
+    winner   = gs.winner or tiebreak_winner(gs.board)
     outright = bool(gs.winner)
-    n_moves  = len(history)
-    # Tempo penalty: reward decays slightly the longer the game goes.
-    # At 200 moves the penalty is 0.25, at 100 moves 0.125, at 50 moves 0.0625.
-    # Encourages decisive play — a fast win beats a slow win, a fast tiebreak
-    # beats a slow one, making endless oscillation actively bad.
-    tempo_penalty = min(0.25, n_moves / 800.0)
+
     samples = []
-    for t, pi, p, b in history:
-        final = np.tanh(shaped_outcome(winner, p, b, outright=outright)) - tempo_penalty
-        step  = np.tanh(player_progress_score(b, p) - player_progress_score(b, 3 - p))
-        val   = max(-1.0, min(1.0, 0.85 * final + 0.15 * step))
+    for t, pi, p in history:
+        val = game_outcome(winner, p, outright=outright)
         samples.append((t, pi, val))
 
     return samples, bool(gs.winner)
@@ -518,18 +453,13 @@ def evaluate(current_net, best_net, n_games=EVAL_GAMES):
         current_is_p1 = (i % 2 == 0)
         nets = ({1: current_net, 2: best_net} if current_is_p1
                 else {1: best_net, 2: current_net})
-        gs        = GameState()
-        prog_win  = []
+        gs         = GameState()
         pos_counts = {}
         for _ in range(MAX_MOVES):
             if gs.is_terminal(): break
             key = (_board_key(gs.board), gs.current_player)
             pos_counts[key] = pos_counts.get(key, 0) + 1
             if pos_counts[key] >= 3: break
-            prog = total_progress(gs.board)
-            prog_win.append(prog)
-            if len(prog_win) > 40: prog_win.pop(0)
-            if len(prog_win) == 40 and max(prog_win) <= prog_win[0]: break
             result = run_mcts(gs, nets[gs.current_player],
                               n_sims=MCTS_EVAL_SIMS, add_noise=False, temperature=0.5)
             if result is None or result[0] is None: break
@@ -553,18 +483,13 @@ def evaluate_vs_minimax(current_net, n_games=EVAL_GAMES):
     draws         = 0
     for i in range(n_games):
         net_is_p1 = (i % 2 == 0)
-        gs        = GameState()
-        prog_win  = []
+        gs         = GameState()
         pos_counts = {}
         for _ in range(MAX_MOVES):
             if gs.is_terminal(): break
             key = (_board_key(gs.board), gs.current_player)
             pos_counts[key] = pos_counts.get(key, 0) + 1
             if pos_counts[key] >= 3: break
-            prog = total_progress(gs.board)
-            prog_win.append(prog)
-            if len(prog_win) > 40: prog_win.pop(0)
-            if len(prog_win) == 40 and max(prog_win) <= prog_win[0]: break
             if gs.current_player == (1 if net_is_p1 else 2):
                 result = run_mcts(gs, current_net,
                                   n_sims=MCTS_EVAL_SIMS, add_noise=False, temperature=0.5)
@@ -603,15 +528,10 @@ def record_eval_game(current_net, best_net, iteration, elo_current, elo_best, ne
     moves_log  = []
     boards_log = [board_snapshot(gs.board)]
     move_count = 0
-    prog_win   = []
     nets       = {net_player: current_net, 3 - net_player: best_net}
 
     for _ in range(MAX_MOVES):
         if gs.is_terminal(): break
-        prog = total_progress(gs.board)
-        prog_win.append(prog)
-        if len(prog_win) > 40: prog_win.pop(0)
-        if len(prog_win) == 40 and max(prog_win) <= prog_win[0]: break
         result = run_mcts(gs, nets[gs.current_player],
                           n_sims=MCTS_EVAL_SIMS, add_noise=False, temperature=0.5)
         if result is None or result[0] is None: break
@@ -678,7 +598,7 @@ def train():
     print(f'Model parameters: {params:,}\n')
 
     opt     = optim.Adam(net.parameters(), lr=LR, weight_decay=1e-4)
-    sched   = optim.lr_scheduler.StepLR(opt, step_size=25, gamma=0.5)
+    sched   = optim.lr_scheduler.StepLR(opt, step_size=100, gamma=0.5)
     replay  = deque(maxlen=REPLAY_SIZE)
 
     start_iter    = 1
@@ -742,11 +662,6 @@ def train():
                 replay.extend(samples)
                 total_g += 1
 
-            # Inject 1 greedy anchor game every MCTS iter to keep decisive
-            # win/loss signal in the buffer and prevent value head collapse.
-            if not in_warmup:
-                anchor_samples, _ = play_game(None, None, warmup=True)
-                replay.extend(anchor_samples)
 
             # ── Train ──────────────────────────────────────────
             if len(replay) < BATCH_SIZE:
