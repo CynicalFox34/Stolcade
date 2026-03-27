@@ -1230,12 +1230,14 @@
             #page-play, #page-online {
                 padding: 0;
                 overflow: hidden;
-                height: 100%;
+                display: flex;
+                flex-direction: column;
             }
 
             /* Board cell size: fit the full 20-row board in the available height.
                260px = topbar (~44) + bottom-nav (56) + player cards (~2×46) + board
                internal padding/gaps (~50). Clamp keeps it between 18–32px. */
+            :root { --cell: clamp(18px, calc((100vh - 260px) / 20), 32px); }
             :root { --cell: clamp(18px, calc((100svh - 260px) / 20), 32px); }
 
             /* Center-line gradient: universal calc()-based formula */
@@ -1254,10 +1256,11 @@
                 );
             }
 
-            /* play-layout: vertical column */
+            /* play-layout: vertical column, fills its flex parent */
             .play-layout {
+                flex: 1;
+                min-height: 0;
                 flex-direction: column;
-                height: 100%;
                 gap: 0;
                 overflow: hidden;
                 align-items: stretch;
