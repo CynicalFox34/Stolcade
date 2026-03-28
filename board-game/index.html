@@ -5413,6 +5413,8 @@ function initOnlinePreviewBoard() {
             } else {
                 cell.classList.add('half-bot');
             }
+            if (r === 19) cell.classList.add('goal-p1');
+            if (r === 0)  cell.classList.add('goal-p2');
             // Initial pieces: only center column
             if (c === MID && !BLOCKED.has(r * COLS + c)) {
                 const piece = document.createElement('div');
